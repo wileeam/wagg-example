@@ -1,0 +1,24 @@
+class CreateComments < ActiveRecord::Migration
+  def change
+    create_table :comments do |t|
+      #t.integer     :position
+      t.datetime    :timestamp_creation
+      t.datetime    :timestamp_edition
+      t.text        :body
+      t.integer     :vote_count
+      t.integer     :karma
+
+      t.references  :commenter
+      #t.references  :news
+
+      t.timestamps null: false
+    end
+
+    add_foreign_key :comments, :authors, name: :commenter, column: :commenter_id
+    #add_foreign_key :comments, :news,    name: :news,      column: :news_id
+
+    add_index :comments, :commenter_id
+    #add_index :comments, :news_id
+
+  end
+end

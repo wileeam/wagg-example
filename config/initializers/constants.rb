@@ -1,0 +1,1 @@
+PAGE_BATCH_SIZE = 10
