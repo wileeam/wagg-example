@@ -65,6 +65,7 @@ ActiveRecord::Schema.define(version: 20150810220236) do
 
   add_index "news", ["id"], name: "index_news_on_id", unique: true, using: :btree
   add_index "news", ["poster_id"], name: "index_news_on_poster_id", using: :btree
+  add_index "news", ["url_internal"], name: "index_news_on_url_internal", using: :btree
 
   create_table "news_comments", id: false, force: :cascade do |t|
     t.integer "news_id",    limit: 4, null: false

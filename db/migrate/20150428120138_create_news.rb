@@ -26,6 +26,7 @@ class CreateNews < ActiveRecord::Migration
 
     add_index(:news, :id, unique: true)
     add_index(:news, :poster_id)
+    add_index(:news, :url_internal)
   end
 
 end
