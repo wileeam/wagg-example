@@ -116,7 +116,7 @@ class RetrieveController < ApplicationController
                   karma: news_comment_item.karma
               )
               unless news_comment_item.timestamps['edition'].nil?
-                comment.timestamp_edition = news_comment_item.timestamps['edition']
+                comment.timestamp_edition = Time.at(news_comment_item.timestamps['edition']).to_datetime
               end
 
               if news_comment_item.votes_available?(news_item.timestamps)
