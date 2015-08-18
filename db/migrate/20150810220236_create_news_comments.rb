@@ -4,7 +4,7 @@ class CreateNewsComments < ActiveRecord::Migration
       t.index       :news_id
       t.index       :comment_id
 
-      t.integer     :position
+      t.integer     :news_index
     end
   end
 end

@@ -1,9 +1,10 @@
 require 'wagg'
 
 class RetrieveController < ApplicationController
+  include Queriable
 
   def page
-
+    redirect_to :update
   end
 
   def page_interval
@@ -24,17 +25,15 @@ class RetrieveController < ApplicationController
 
       # Parse and process each news in news_list to be stored in database
       news_urls_list.each do |news_url|
-        news_url = "https://www.meneame.net/story/30-terrorificas-fotos-psiquiatricos-asilos-pasado"
-        #news_url = "https://www.meneame.net/story/nasa-abre-google-earth-marte"
         news = News.find_by_url_internal(news_url)
         if news.nil?
           # First: Parse the URL into a news object (can be done via Page object too)
           news_item = Wagg.crawl_news(news_url, TRUE, TRUE)
 
           # Second: Check and create if needed author of news
-          author = Author.find_or_initialize_by(name: news_item.author['name']) do |field|
+          author = Author.find_or_initialize_by(name: news_item.author['name']) do |a|
             news_author_item = Wagg.crawl_author(news_item.author['name'])
-            field.signup = Time.at(news_author_item.creation).to_datetime
+            a.signup = Time.at(news_author_item.creation).to_datetime
           end
           if author.id.nil?
             author.id = news_item.author['id']
@@ -77,7 +76,6 @@ class RetrieveController < ApplicationController
           end
 
           # Sixth: Store votes of news if available (and news is closed (implicit))
-=begin
           if news_item.votes_available?
             news_item.votes.each do |news_vote|
               vote_author = Author.find_or_initialize_by(name: news_vote.author)
@@ -97,10 +95,10 @@ class RetrieveController < ApplicationController
               news.votes << vote
             end
           end
-=end
+
           # Seventh: Store comment of news if available (and news is closed (implicit))
           if news_item.comments_available?
-            news_item.comments.each do |news_comment_position, news_comment_item|
+            news_item.comments.each do |news_comment_index, news_comment_item|
               comment_author = Author.find_or_initialize_by(name:news_comment_item.author)
               if comment_author.id.nil?
                 comment_author_item = Wagg.crawl_author(news_comment_item.author)
@@ -141,14 +139,13 @@ class RetrieveController < ApplicationController
                 end
               end
 
-              comment.save && comment.news_comments.create(:news => news, :position => news_comment_position)
+              comment.save && comment.news_comments.create(:news => news, :news_index => news_comment_index)
             end
 
           end
 
         end
         news.save
-        exit(0)
       end
 
     end
@@ -170,6 +167,13 @@ class RetrieveController < ApplicationController
   end
 
   def comment
+
+    comments = Comment.where(vote_count: nil)
+    comments.each do |c|
+      puts c.id
+    end
+    exit(0)
+    #complete_comment_by_url()
     News.find_each(:batch_size => 25) do |news|
       puts news.url_internal
 
