@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150810220236) do
+ActiveRecord::Schema.define(version: 20150818212803) do
 
   create_table "authors", force: :cascade do |t|
     t.string   "name",       limit: 255
@@ -21,6 +21,7 @@ ActiveRecord::Schema.define(version: 20150810220236) do
   end
 
   add_index "authors", ["id"], name: "index_authors_on_id", unique: true, using: :btree
+  add_index "authors", ["name"], name: "index_authors_on_name", using: :btree
 
   create_table "categories", force: :cascade do |t|
     t.string   "name",       limit: 255, null: false
@@ -70,7 +71,7 @@ ActiveRecord::Schema.define(version: 20150810220236) do
   create_table "news_comments", id: false, force: :cascade do |t|
     t.integer "news_id",    limit: 4, null: false
     t.integer "comment_id", limit: 4, null: false
-    t.integer "position",   limit: 4
+    t.integer "news_index", limit: 4
   end
 
   add_index "news_comments", ["comment_id"], name: "index_news_comments_on_comment_id", using: :btree
