@@ -23,18 +23,26 @@ class RetrieveController < ApplicationController
     with_comments = TRUE
     with_votes = FALSE
 
-    news_urls_list = Array.new
+    Wagg.configure do |c|
+      c.retrieval_delay['page'] = 3
+      c.retrieval_delay['author'] = 3
+    end
+
+    news_urls_page_list = Hash.new
     #(init_index..end_index).each do |page_index|
     (end_index).downto(init_index) do |page_index|
       # Get a list of news urls from page index
-      news_urls_list.concat(Wagg::Crawler::Page.new(page_index).news_urls)
+      news_urls_page_list[page_index] = Wagg::Crawler::Page.new(page_index).news_urls
     end
-
+    Rails.logger.info 'Parsing %{urls_size} URLs' %{urls_size:news_urls_page_list.map{|_,list| list.size}.inject{|sum,x| sum + x}}
 
     # Parse and process each news in news_list to be stored in database
-    news_urls_list.each do |news_url|
+    news_urls_page_list.each do |page_index, news_urls_list|
+      Rails.logger.info 'Processing page with index #%{index}' % {index:page_index}
+      news_urls_list.each do |news_url|
       news = News.find_by_url_internal(news_url)
       if news.nil?
+        Rails.logger.info 'Parsing URL -> %{index}::%{url}' % {index:page_index, url:news_url}
         # First: Parse the URL into a news object (can be done via Page object too)
         news_item = Wagg.crawl_news(news_url, with_comments, with_votes)
 
@@ -154,8 +162,8 @@ class RetrieveController < ApplicationController
 
       end
       news.save
+      end
     end
-
   end
 
   def news

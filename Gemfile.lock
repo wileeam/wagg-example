@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: eb0cf5bc2b2bff69f239ccfa64f7d5731fcc52a6
+  revision: aed9b801408eb63d7d047f216f40ec3eaa4d5bfc
   specs:
-    wagg (0.4.0.pre1)
+    wagg (0.4.2.pre1)
       mechanize
 
 GEM
@@ -165,7 +165,7 @@ GEM
       json (~> 1.7, >= 1.7.7)
       rdoc (~> 4.0)
     spring (1.3.6)
-    sprockets (3.3.1)
+    sprockets (3.3.2)
       rack (~> 1.0)
     sprockets-rails (2.3.2)
       actionpack (>= 3.0)
