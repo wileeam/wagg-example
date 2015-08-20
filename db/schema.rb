@@ -11,10 +11,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150818212803) do
+ActiveRecord::Schema.define(version: 20150810220236) do
 
   create_table "authors", force: :cascade do |t|
-    t.string   "name",       limit: 255
+    t.string   "name",       limit: 191
     t.datetime "signup"
     t.datetime "created_at",             null: false
     t.datetime "updated_at",             null: false
@@ -30,7 +30,6 @@ ActiveRecord::Schema.define(version: 20150818212803) do
   end
 
   add_index "categories", ["id"], name: "index_categories_on_id", unique: true, using: :btree
-  add_index "categories", ["name"], name: "index_categories_on_name", unique: true, using: :btree
 
   create_table "comments", force: :cascade do |t|
     t.datetime "timestamp_creation"
@@ -44,14 +43,15 @@ ActiveRecord::Schema.define(version: 20150818212803) do
   end
 
   add_index "comments", ["commenter_id"], name: "index_comments_on_commenter_id", using: :btree
+  add_index "comments", ["id"], name: "index_comments_on_id", unique: true, using: :btree
 
   create_table "news", force: :cascade do |t|
-    t.string   "title",                 limit: 255
+    t.text     "title",                 limit: 65535
     t.text     "description",           limit: 65535
     t.datetime "timestamp_creation"
     t.datetime "timestamp_publication"
-    t.string   "url_internal",          limit: 255
-    t.string   "url_external",          limit: 255
+    t.text     "url_internal",          limit: 65535
+    t.text     "url_external",          limit: 65535
     t.integer  "karma",                 limit: 4
     t.integer  "votes_count_positive",  limit: 4
     t.integer  "votes_count_negative",  limit: 4
@@ -59,14 +59,14 @@ ActiveRecord::Schema.define(version: 20150818212803) do
     t.integer  "clicks",                limit: 4
     t.integer  "comments_count",        limit: 4
     t.integer  "poster_id",             limit: 4
-    t.string   "category",              limit: 255
+    t.string   "category",              limit: 191
     t.datetime "created_at",                          null: false
     t.datetime "updated_at",                          null: false
   end
 
   add_index "news", ["id"], name: "index_news_on_id", unique: true, using: :btree
   add_index "news", ["poster_id"], name: "index_news_on_poster_id", using: :btree
-  add_index "news", ["url_internal"], name: "index_news_on_url_internal", using: :btree
+  add_index "news", ["url_internal"], name: "index_news_on_url_internal", length: {"url_internal"=>191}, using: :btree
 
   create_table "news_comments", id: false, force: :cascade do |t|
     t.integer "news_id",    limit: 4, null: false
@@ -91,7 +91,7 @@ ActiveRecord::Schema.define(version: 20150818212803) do
     t.datetime "updated_at",             null: false
   end
 
-  add_index "tags", ["name"], name: "index_tags_on_name", unique: true, using: :btree
+  add_index "tags", ["name"], name: "index_tags_on_name", unique: true, length: {"name"=>191}, using: :btree
 
   create_table "votes", force: :cascade do |t|
     t.float    "weight",       limit: 24
@@ -103,7 +103,9 @@ ActiveRecord::Schema.define(version: 20150818212803) do
     t.datetime "updated_at",               null: false
   end
 
-  add_index "votes", ["votable_type", "votable_id"], name: "index_votes_on_votable_type_and_votable_id", using: :btree
+  add_index "votes", ["id"], name: "index_votes_on_id", unique: true, using: :btree
+  add_index "votes", ["votable_id"], name: "index_votes_on_votable_id", using: :btree
+  add_index "votes", ["votable_type"], name: "index_votes_on_votable_type", length: {"votable_type"=>191}, using: :btree
   add_index "votes", ["voter_id"], name: "voter", using: :btree
 
   add_foreign_key "comments", "authors", column: "commenter_id", name: "commenter"
