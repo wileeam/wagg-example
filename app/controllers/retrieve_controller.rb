@@ -123,16 +123,15 @@ class RetrieveController < ApplicationController
               comment_author.save
             end
 
-            comment = Comment.new(
-                id: news_comment_item.id,
-                commenter_id: comment_author.id,
-                timestamp_creation: Time.at(news_comment_item.timestamps['creation']).to_datetime,
-                body: news_comment_item.body,
-                vote_count: news_comment_item.vote_count,
-                karma: news_comment_item.karma
-            )
-            unless news_comment_item.timestamps['edition'].nil?
-              comment.timestamp_edition = Time.at(news_comment_item.timestamps['edition']).to_datetime
+            comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
+              c.commenter_id = comment_author.id
+              c.timestamp_creation = Time.at(news_comment_item.timestamps['creation']).to_datetime
+              c.body = news_comment_item.body
+              c.vote_count = news_comment_item.vote_count
+              c.karma = news_comment_item.karma
+              unless news_comment_item.timestamps['edition'].nil?
+                c.timestamp_edition = Time.at(news_comment_item.timestamps['edition']).to_datetime
+              end
             end
 
             if news_comment_item.votes_available?(news_item.timestamps)
