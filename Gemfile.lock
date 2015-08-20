@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: b04f5440bea4cc1607444919ac6ad70f8decddf6
+  revision: b9909cb0688e245117f35c8c0920a90e0df6c178
   specs:
     wagg (0.4.2.pre1)
       mechanize
