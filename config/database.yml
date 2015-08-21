@@ -14,7 +14,7 @@ default: &default
   password: wagg
   timeout: 5000
   encoding: utf8mb4
-  collation: utf8mb4_unicode_ci
+  collation: utf8mb4_bin
 
 development:
   <<: *default
