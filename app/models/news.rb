@@ -1,5 +1,5 @@
 class News < ActiveRecord::Base
-  has_many                :votes,     as: :votable#inverse_of: :news
+  has_many    :votes,         :as           => :votable#inverse_of: :news
 
   belongs_to  :poster,        :foreign_key  => :poster_id#inverse_of: :authors
 

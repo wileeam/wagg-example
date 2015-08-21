@@ -14,11 +14,13 @@ Rails.application.routes.draw do
   get 'retrieve/news',                      to: 'retrieve#news'
   get 'retrieve/news/:id',                  to: 'retrieve#news'
   get 'retrieve/news/:init_id/to/:end_id',  to: 'retrieve#news_interval'
-  get 'retrieve/news/all',                  to: 'retrieve#news'
+  get 'retrieve/news/all',                  to: 'retrieve#all_news'
 
-  get 'retrieve/comment'
+  get 'retrieve/comment',                   to: 'retrieve#comment'
+  get 'retrieve/comment/all',               to: 'retrieve#all_comments'
 
-  get 'retrieve/vote'
+  get 'retrieve/vote',                      to: 'retrieve#vote'
+  get 'retrieve/vote/all',                  to: 'retrieve#all_votes'
 
   get 'updates',                            to: 'updates#index'
 

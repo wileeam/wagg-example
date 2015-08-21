@@ -35,7 +35,7 @@ class RetrieveController < ApplicationController
       news_urls_page_list[page_index] = Wagg::Crawler::Page.new(page_index).news_urls
     end
     Rails.logger.info 'Parsing %{urls_size} URLs' %{urls_size:news_urls_page_list.map{|_,list| list.size}.inject{|sum,x| sum + x}}
-    
+
     # Parse and process each news in news_list to be stored in database
     news_urls_page_list.each do |page_index, news_urls_list|
       Rails.logger.info 'Processing page with index #%{index}' % {index:page_index}
@@ -194,7 +194,40 @@ class RetrieveController < ApplicationController
 
   end
 
-  def vote
+  def all_votes
+
+    news_list = News.where(:timestamp_publication => 60.days.ago..DateTime.now)
+    news_list.each do |news|
+      Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
+      #Parse votes of news (last 30 days)
+      if (news.votes_count_positive + news.votes_count_negative) != news.votes.count
+        # Retrieve remaning votes for news
+        # TODO: Retrieve all votes and check again that retrieved votes match the news counting
+        news_votes_items = Wagg.crawl_news_for_votes(news.id)
+        if news_votes_items.size == (news.votes_count_positive + news.votes_count_negative)
+          news_votes_items.each do |news_vote_item|
+            vote_author = Author.find_or_initialize_by(name: news_vote_item.author)
+            if vote_author.id.nil?
+              news_vote_author_item = Wagg.crawl_author(news_vote_item.author)
+              vote_author.id = news_vote_author_item.id
+              vote_author.signup = Time.at(news_vote_author_item.creation).to_datetime
+              vote_author.save
+            end
+            vote = Vote.new(
+                voter_id: vote_author.id,
+                timestamp: Time.at(news_vote_item.timestamp).to_datetime,
+                weight: news_vote_item.weight
+            )
+            vote.votable = news
+            vote.save
+            news.votes << vote
+          end
+        else
+          Rails.logger.error 'Inconsistent votes for news -> %{url}' % {url:news.url_internal}
+        end
+      end
+    end
 
   end
+
 end
