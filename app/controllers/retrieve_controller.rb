@@ -47,16 +47,11 @@ class RetrieveController < ApplicationController
           news_item = Wagg.crawl_news(news_url, with_comments, with_votes)
 
           # Second: Check and create if needed author of news
-          author = Author.find_or_initialize_by(name: news_item.author['name']) do |a|
+          author = Author.find_or_initialize_by(id: news_item.author['id']) do |a|
             news_author_item = Wagg.crawl_author(news_item.author['name'])
+            a.name = news_item.author['name']
+            a.id = news_item.author['id']
             a.signup = Time.at(news_author_item.creation).to_datetime
-          end
-          if author.id.nil?
-            author.id = news_item.author['id']
-          else
-            if author.id != news_item.author['id']
-              puts "ERROR: News (%{id_news}) has two different users (%{author_id_db} - %{author_id_news}) with the same user name (%{name)" % {id_news: news_item.id, author_id_db: author.id, author_id_news: news_item.author['name'], author_name: news_item.author['name']}
-            end
           end
           author.save
 
@@ -115,13 +110,12 @@ class RetrieveController < ApplicationController
           # Seventh: Store comment of news if available (and news is closed (implicit))
           if news_item.comments_available?
             news_item.comments.each do |news_comment_index, news_comment_item|
-              comment_author = Author.find_or_initialize_by(name: news_comment_item.author)
-              if comment_author.id.nil?
-                comment_author_item = Wagg.crawl_author(news_comment_item.author)
-                comment_author.id = comment_author_item.id
-                comment_author.signup = Time.at(comment_author_item.creation).to_datetime
-                comment_author.save
+              comment_author_item = Wagg.crawl_author(news_comment_item.author)
+              comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
+                a.signup = Time.at(comment_author_item.creation).to_datetime
               end
+              comment_author.name = comment_author_item.name
+              comment_author.save
 
               comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
                 c.commenter_id = comment_author.id
@@ -175,22 +169,28 @@ class RetrieveController < ApplicationController
       puts news.url_internal
     else
       # Inform the user that there is no news with such id in the database
-      puts "Nope... no news with such id: #{id}"
+      puts "Nope... no news with such id: %{id}" %{id:params[:id]}
     end
   end
 
-  def comment
+  def all_comments
 
-    comments = Comment.where(vote_count: nil)
-    comments.each do |c|
-      puts c.id
+    # We first filter the news that are no more than 60 days old
+    news_list = News.where(:timestamp_publication => 60.days.ago..DateTime.now)
+    news_list.each do |news|
+      comments_news_list = news.comments.where(:timestamp_creation => :timestamp_creation + 30.days.ago)
+      puts comments_news_list
     end
     exit(0)
-    #complete_comment_by_url()
-    News.find_each(:batch_size => 25) do |news|
-      puts news.url_internal
+    #comments_list = Comment.where(:timestamp_creation => 60.days.ago..DateTime.now)
+    #comments_list.each do |comment|
+    #  puts comment.news.count
+    #end
 
-    end
+    #news.comments.includes(:news_comments).count
+    #comments.each do |c|
+    #  puts c.id
+    #end
 
   end
 

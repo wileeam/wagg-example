@@ -4,5 +4,5 @@ class Comment < ActiveRecord::Base
   has_many  :votes,         :as      => :votable
 
   has_many  :news_comments
-  has_many  :newses,        :through => :news_comments
+  has_many  :news,        :through => :news_comments
 end
