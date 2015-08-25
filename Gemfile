@@ -34,8 +34,9 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 
 gem 'wagg', :git => 'https://github.com/wileeam/wagg.git'
 #gem 'wagg', :git => '~/Dropbox/Ph.D in CS/wagg', :branch => 'master'
+gem 'composite_primary_keys', '~> 8.1.1'
 
-    group :development, :test do
+group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug'
 

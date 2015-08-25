@@ -69,13 +69,10 @@ ActiveRecord::Schema.define(version: 20150810220236) do
   add_index "news", ["url_internal"], name: "index_news_on_url_internal", length: {"url_internal"=>191}, using: :btree
 
   create_table "news_comments", id: false, force: :cascade do |t|
-    t.integer "news_id",    limit: 4, null: false
-    t.integer "comment_id", limit: 4, null: false
-    t.integer "news_index", limit: 4
+    t.integer "news_id",    limit: 4, default: 0, null: false
+    t.integer "comment_id", limit: 4, default: 0, null: false
+    t.integer "news_index", limit: 4, default: 0, null: false
   end
-
-  add_index "news_comments", ["comment_id"], name: "index_news_comments_on_comment_id", using: :btree
-  add_index "news_comments", ["news_id"], name: "index_news_comments_on_news_id", using: :btree
 
   create_table "news_tags", id: false, force: :cascade do |t|
     t.integer "news_id", limit: 4, null: false

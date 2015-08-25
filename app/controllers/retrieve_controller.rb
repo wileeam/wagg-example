@@ -147,8 +147,11 @@ class RetrieveController < ApplicationController
                   comment.votes << vote
                 end
               end
-
-              comment.save && comment.news_comments.create(:news => news, :news_index => news_comment_index)
+              #comment.save && comment.news_comments.create(:news => news, :news_index => news_comment_index)
+              comment.save
+              unless comment.news_comments.exists?(:news => news, :news_index => news_comment_index)
+                comment.news_comments.create(:news => news, :news_index => news_comment_index)
+              end
             end
 
           end
