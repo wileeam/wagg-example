@@ -176,46 +176,28 @@ class RetrieveController < ApplicationController
     end
   end
 
-  def all_comments
+  def news_votes
 
-    # We first filter the news that are no more than 60 days old
-    news_list = News.where(:timestamp_publication => 60.days.ago..DateTime.now)
-    news_list.each do |news|
-      comments_news_list = news.comments.where(:timestamp_creation => :timestamp_creation + 30.days.ago)
-      puts comments_news_list
-    end
-    exit(0)
-    #comments_list = Comment.where(:timestamp_creation => 60.days.ago..DateTime.now)
-    #comments_list.each do |comment|
-    #  puts comment.news.count
-    #end
-
-    #news.comments.includes(:news_comments).count
-    #comments.each do |c|
-    #  puts c.id
-    #end
-
-  end
-
-  def all_votes
-
-    news_list = News.where(:timestamp_publication => 60.days.ago..DateTime.now)
+    # Get a list of news published between the last 60 and 30 days
+    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago)
+    # Iterate over each news and retrieve the votes
     news_list.each do |news|
       Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
       #Parse votes of news (last 30 days)
       if (news.votes_count_positive + news.votes_count_negative) != news.votes.count
-        # Retrieve remaning votes for news
+        # Retrieve remaining votes for news
         # TODO: Retrieve all votes and check again that retrieved votes match the news counting
         news_votes_items = Wagg.crawl_news_for_votes(news.id)
         if news_votes_items.size == (news.votes_count_positive + news.votes_count_negative)
           news_votes_items.each do |news_vote_item|
-            vote_author = Author.find_or_initialize_by(name: news_vote_item.author)
-            if vote_author.id.nil?
-              news_vote_author_item = Wagg.crawl_author(news_vote_item.author)
-              vote_author.id = news_vote_author_item.id
-              vote_author.signup = Time.at(news_vote_author_item.creation).to_datetime
-              vote_author.save
+
+            vote_author_item = Wagg.crawl_author(news_vote_item.author)
+            vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
+              a.signup = Time.at(vote_author_item.creation).to_datetime
             end
+            vote_author.name = vote_author_item.name
+            vote_author.save
+
             vote = Vote.new(
                 voter_id: vote_author.id,
                 timestamp: Time.at(news_vote_item.timestamp).to_datetime,
@@ -230,6 +212,119 @@ class RetrieveController < ApplicationController
         end
       end
     end
+
+  end
+
+  def comment_votes
+
+    # Get a list of news published between the last 60 and 30 days
+    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago)
+    # Get now all comments
+    news_list.each do |news|
+      Rails.logger.info 'Parsing votes for comments of news -> %{url}' % {url:news.url_internal}
+      comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago)
+      comments_news_list.each do |comment|
+        # Parse votes of comment (last 30 days)
+        if !comment.vote_count.nil? && !comment.karma.nil? && comment.vote_count >0 && comment.votes.count != comment.vote_count
+          comment_votes_items = Wagg.crawl_comment_for_votes(comment.id)
+          if comment_votes_items.size == (comment.vote_count)
+            comment_votes_items.each do |comment_vote_item|
+
+              vote_author_item = Wagg.crawl_author(comment_vote_item.author)
+              vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
+                a.signup = Time.at(vote_author_item.creation).to_datetime
+              end
+              vote_author.name = vote_author_item.name
+              vote_author.save
+
+              vote = Vote.new(
+                  voter_id: vote_author.id,
+                  timestamp: Time.at(comment_vote_item.timestamp).to_datetime,
+                  weight: comment_vote_item.weight
+              )
+              vote.votable = comment
+              vote.save
+              comment.votes << vote
+            end
+          else
+            Rails.logger.error 'Inconsistent votes for comment -> %{id}' % {id:comment.id}
+          end
+        end
+      end
+    end
+
+  end
+
+  def all_votes
+
+    # Get a list of news published between the last 60 and 30 days
+    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago)
+    # Iterate over each news and retrieve the votes
+    news_list.each do |news|
+      Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
+      #Parse votes of news (last 30 days)
+      if (news.votes_count_positive + news.votes_count_negative) != news.votes.count
+        # Retrieve remaining votes for news
+        # TODO: Retrieve all votes and check again that retrieved votes match the news counting
+        news_votes_items = Wagg.crawl_news_for_votes(news.id)
+        if news_votes_items.size == (news.votes_count_positive + news.votes_count_negative)
+          news_votes_items.each do |news_vote_item|
+
+            vote_author_item = Wagg.crawl_author(news_vote_item.author)
+            vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
+              a.signup = Time.at(vote_author_item.creation).to_datetime
+            end
+            vote_author.name = vote_author_item.name
+            vote_author.save
+
+            vote = Vote.new(
+                voter_id: vote_author.id,
+                timestamp: Time.at(news_vote_item.timestamp).to_datetime,
+                weight: news_vote_item.weight
+            )
+            vote.votable = news
+            vote.save
+            news.votes << vote
+          end
+        else
+          Rails.logger.error 'Inconsistent votes for news -> %{url}' % {url:news.url_internal}
+        end
+      end
+
+      Rails.logger.info 'Parsing votes for comments of news -> %{url}' % {url:news.url_internal}
+      comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago)
+      comments_news_list.each do |comment|
+        # Parse votes of comment (last 30 days)
+        if !comment.vote_count.nil? && !comment.karma.nil? && comment.vote_count >0 && comment.votes.count != comment.vote_count
+          comment_votes_items = Wagg.crawl_comment_for_votes(comment.id)
+          if comment_votes_items.size == (comment.vote_count)
+            comment_votes_items.each do |comment_vote_item|
+
+              vote_author_item = Wagg.crawl_author(comment_vote_item.author)
+              vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
+                a.signup = Time.at(vote_author_item.creation).to_datetime
+              end
+              vote_author.name = vote_author_item.name
+              vote_author.save
+
+              vote = Vote.new(
+                  voter_id: vote_author.id,
+                  timestamp: Time.at(comment_vote_item.timestamp).to_datetime,
+                  weight: comment_vote_item.weight
+              )
+              vote.votable = comment
+              vote.save
+              comment.votes << vote
+            end
+          else
+            Rails.logger.error 'Inconsistent votes for comment -> %{id}' % {id:comment.id}
+          end
+        end
+      end
+
+
+    end
+
 
   end
 

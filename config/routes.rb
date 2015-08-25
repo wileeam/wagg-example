@@ -12,11 +12,14 @@ Rails.application.routes.draw do
 
   # Retrieve specific news or intervals or all
   get 'retrieve/news',                      to: 'retrieve#news'
+  get 'retrieve/news/votes',                to: 'retrieve#news_votes'
   get 'retrieve/news/:id',                  to: 'retrieve#news'
   get 'retrieve/news/:init_id/to/:end_id',  to: 'retrieve#news_interval'
   get 'retrieve/news/all',                  to: 'retrieve#all_news'
 
+
   get 'retrieve/comment',                   to: 'retrieve#comment'
+  get 'retrieve/comment/votes',             to: 'retrieve#comment_votes'
   get 'retrieve/comment/all',               to: 'retrieve#all_comments'
 
   get 'retrieve/vote',                      to: 'retrieve#vote'
