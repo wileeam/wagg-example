@@ -1,6 +1,6 @@
 class CreateVotes < ActiveRecord::Migration
   def change
-    create_table :votes do |t|
+    create_table :votes, :id => false do |t|
       t.float       :weight
       t.datetime    :timestamp
 
@@ -12,9 +12,10 @@ class CreateVotes < ActiveRecord::Migration
 
     add_foreign_key :votes,  :authors, name: :voter, column: :voter_id
 
-    add_index(:votes, :id, unique: true)
+    execute "ALTER TABLE votes ADD PRIMARY KEY (voter_id, votable_id, votable_type(191));"
 
-    add_index(:votes, :votable_type, length: 191)
-    add_index(:votes, :votable_id)
+    #add_index(:votes, :votable_type, length: 191)
+    #add_index(:votes, :votable_id)
+    #add_index(:votes, :voter_id)
   end
 end

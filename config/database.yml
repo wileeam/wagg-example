@@ -8,6 +8,7 @@ default: &default
   adapter: mysql2
   reconnect: false
   host: localhost
+  port: 3306
   database: wagg
   pool: 5
   username: wagg

@@ -90,20 +90,15 @@ ActiveRecord::Schema.define(version: 20150810220236) do
 
   add_index "tags", ["name"], name: "index_tags_on_name", unique: true, length: {"name"=>191}, using: :btree
 
-  create_table "votes", force: :cascade do |t|
+  create_table "votes", id: false, force: :cascade do |t|
     t.float    "weight",       limit: 24
     t.datetime "timestamp"
-    t.integer  "votable_id",   limit: 4
-    t.string   "votable_type", limit: 255
-    t.integer  "voter_id",     limit: 4
-    t.datetime "created_at",               null: false
-    t.datetime "updated_at",               null: false
+    t.integer  "votable_id",   limit: 4,   default: 0,  null: false
+    t.string   "votable_type", limit: 255, default: "", null: false
+    t.integer  "voter_id",     limit: 4,   default: 0,  null: false
+    t.datetime "created_at",                            null: false
+    t.datetime "updated_at",                            null: false
   end
-
-  add_index "votes", ["id"], name: "index_votes_on_id", unique: true, using: :btree
-  add_index "votes", ["votable_id"], name: "index_votes_on_votable_id", using: :btree
-  add_index "votes", ["votable_type"], name: "index_votes_on_votable_type", length: {"votable_type"=>191}, using: :btree
-  add_index "votes", ["voter_id"], name: "voter", using: :btree
 
   add_foreign_key "comments", "authors", column: "commenter_id", name: "commenter"
   add_foreign_key "news", "authors", column: "poster_id", name: "poster"

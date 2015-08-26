@@ -284,8 +284,10 @@ class RetrieveController < ApplicationController
                 weight: news_vote_item.weight
             )
             vote.votable = news
-            vote.save
-            news.votes << vote
+            unless Vote.exists?([vote.voter_id, vote.votable_id, vote.votable_type])
+              vote.save
+              news.votes << vote
+            end
           end
         else
           Rails.logger.error 'Inconsistent votes for news -> %{url}' % {url:news.url_internal}
@@ -314,8 +316,10 @@ class RetrieveController < ApplicationController
                   weight: comment_vote_item.weight
               )
               vote.votable = comment
-              vote.save
-              comment.votes << vote
+              unless Vote.exists?([vote.voter_id, vote.votable_id, vote.votable_type])
+                vote.save
+                comment.votes << vote
+              end
             end
           else
             Rails.logger.error 'Inconsistent votes for comment -> %{id}' % {id:comment.id}
