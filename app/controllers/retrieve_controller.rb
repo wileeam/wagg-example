@@ -179,7 +179,7 @@ class RetrieveController < ApplicationController
   def news_votes
 
     # Get a list of news published between the last 60 and 30 days
-    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago)
+    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago).order(:timestamp_publication => :asc)
     # Iterate over each news and retrieve the votes
     news_list.each do |news|
       Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
@@ -218,11 +218,11 @@ class RetrieveController < ApplicationController
   def comment_votes
 
     # Get a list of news published between the last 60 and 30 days
-    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago)
+    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago).order(:timestamp_publication => :asc)
     # Get now all comments
     news_list.each do |news|
       Rails.logger.info 'Parsing votes for comments of news -> %{url}' % {url:news.url_internal}
-      comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago)
+      comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago).order(:timestamp_creation => :asc)
       comments_news_list.each do |comment|
         # Parse votes of comment (last 30 days)
         if !comment.vote_count.nil? && !comment.karma.nil? && comment.vote_count >0 && comment.votes.count != comment.vote_count
@@ -258,7 +258,8 @@ class RetrieveController < ApplicationController
   def all_votes
 
     # Get a list of news published between the last 60 and 30 days
-    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago)
+    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago).order(:timestamp_publication => :asc)
+
     # Iterate over each news and retrieve the votes
     news_list.each do |news|
       Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
@@ -292,7 +293,7 @@ class RetrieveController < ApplicationController
       end
 
       Rails.logger.info 'Parsing votes for comments of news -> %{url}' % {url:news.url_internal}
-      comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago)
+      comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago).order(:timestamp_creation => :asc)
       comments_news_list.each do |comment|
         # Parse votes of comment (last 30 days)
         if !comment.vote_count.nil? && !comment.karma.nil? && comment.vote_count >0 && comment.votes.count != comment.vote_count
@@ -322,9 +323,7 @@ class RetrieveController < ApplicationController
         end
       end
 
-
     end
-
 
   end
 
