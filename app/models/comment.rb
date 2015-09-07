@@ -5,4 +5,6 @@ class Comment < ActiveRecord::Base
 
   has_many  :news_comments
   has_many  :news,        :through => :news_comments
+
+  validates_uniqueness_of     :id
 end

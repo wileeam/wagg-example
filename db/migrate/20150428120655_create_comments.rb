@@ -14,6 +14,8 @@ class CreateComments < ActiveRecord::Migration
       t.timestamps null: false
     end
 
+    change_column   :comments, :id, :integer, null: false, unique: true
+
     add_foreign_key :comments, :authors, name: :commenter, column: :commenter_id
     #add_foreign_key :comments, :news,    name: :news,      column: :news_id
 

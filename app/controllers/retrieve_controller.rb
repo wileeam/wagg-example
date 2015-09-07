@@ -46,18 +46,17 @@ class RetrieveController < ApplicationController
           # First: Parse the URL into a news object (can be done via Page object too)
           news_item = Wagg.crawl_news(news_url, with_comments, with_votes)
 
-          # Second: Check and create if needed author of news
-          author = Author.find_or_initialize_by(id: news_item.author['id']) do |a|
-            news_author_item = Wagg.crawl_author(news_item.author['name'])
-            a.name = news_item.author['name']
-            a.id = news_item.author['id']
-            a.signup = Time.at(news_author_item.creation).to_datetime
-          end
-          author.save
-
           # Third: Save main attributed of new news
-          news = News.new do |n|
-            n.id = news_item.id
+          news = News.find_or_initialize_by(id: news_item.id) do |n|
+            # Second: Check and create if needed author of news
+            author = Author.find_or_initialize_by(id: news_item.author['id']) do |a|
+              news_author_item = Wagg.crawl_author(news_item.author['name'])
+              a.name = news_item.author['name']
+              a.id = news_item.author['id']
+              a.signup = Time.at(news_author_item.creation).to_datetime
+            end
+            author.save
+
             n.title = news_item.title
             n.description = news_item.description
             n.url_internal = news_item.urls['internal']
@@ -66,13 +65,13 @@ class RetrieveController < ApplicationController
             n.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
             n.category = news_item.category
             n.poster_id = author.id
-          end
 
-          # Fourth: Check and save if not existing news tags (and associate them)
-          news_item.tags.each do |t|
-            tag = Tag.find_or_initialize_by(name: t)
-            tag.save
-            news.tags << tag
+            # Fourth: Check and save if not existing news tags (and associate them)
+            news_item.tags.each do |t|
+              tag = Tag.find_or_initialize_by(name: t)
+              tag.save
+              n.tags << tag
+            end
           end
 
           #Fifth: If news is closed we can save this data to the database (as it will not change)
@@ -110,14 +109,15 @@ class RetrieveController < ApplicationController
           # Seventh: Store comment of news if available (and news is closed (implicit))
           if news_item.comments_available?
             news_item.comments.each do |news_comment_index, news_comment_item|
-              comment_author_item = Wagg.crawl_author(news_comment_item.author)
-              comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
-                a.signup = Time.at(comment_author_item.creation).to_datetime
-              end
-              comment_author.name = comment_author_item.name
-              comment_author.save
 
               comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
+                comment_author_item = Wagg.crawl_author(news_comment_item.author)
+                comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
+                  a.signup = Time.at(comment_author_item.creation).to_datetime
+                end
+                comment_author.name = comment_author_item.name
+                comment_author.save
+
                 c.commenter_id = comment_author.id
                 c.timestamp_creation = Time.at(news_comment_item.timestamps['creation']).to_datetime
                 c.body = news_comment_item.body
@@ -153,12 +153,53 @@ class RetrieveController < ApplicationController
                 comment.news_comments.create(:news => news, :news_index => news_comment_index)
               end
             end
+=begin
+            ## Verify that all comments are in
+            if news.comments.count != news.comments_count
+              news_comments_index_list = NewsComment.where(:news => news).order(:news_index => :asc).pluck(:news_index)
+              tracking_index = 1
+              news_comments_index_list.each do |news_comment_index|
+                while tracking_index != news_comment_index
+                  # Retrieve tracking index for that news
+                  corrected_news_url_internal = '%{news_url_internal}/c0%{news_comment_index}' % {news_url_internal: news.url_internal, news_comment_index: news_comment_index}
+                  puts corrected_news_url_internal
+                  corrected_news = Wagg.crawl_news(corrected_news_url_internal, TRUE, FALSE)
+                  puts corrected_news
+                  news_comment_item = corrected_news.comment(tracking_index)
+                  puts news_comment_item
+                  comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
+                    comment_author_item = Wagg.crawl_author(news_comment_item.author)
+                    comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
+                      a.signup = Time.at(comment_author_item.creation).to_datetime
+                    end
+                    comment_author.name = comment_author_item.name
+                    comment_author.save
 
+                    c.commenter_id = comment_author.id
+                    c.timestamp_creation = Time.at(news_comment_item.timestamps['creation']).to_datetime
+                    c.body = news_comment_item.body
+                    c.vote_count = news_comment_item.vote_count
+                    c.karma = news_comment_item.karma
+                    unless news_comment_item.timestamps['edition'].nil?
+                      c.timestamp_edition = Time.at(news_comment_item.timestamps['edition']).to_datetime
+                    end
+                  end
+                  comment.save
+                  unless comment.news_comments.exists?(:news => news, :news_index => tracking_index)
+                    comment.news_comments.create(:news => news, :news_index => tracking_index)
+                  end
+                  # Update tracking_index and check again (there can be two consecutive comments missing)
+                  tracking_index += 1
+                end
+                tracking_index += 1
+              end
+            end
+            ##
+=end
           end
-
         end
         news.save
-        end
+      end
     end
   end
 
@@ -176,6 +217,49 @@ class RetrieveController < ApplicationController
     end
   end
 
+  def comment
+
+    id = params[:id].to_i
+
+    comment = Comment.find_or_initialize_by(id: id) do |c|
+      comment_item = Wagg.crawl_comment(id, FALSE)
+      comment_author_item = Wagg.crawl_author(comment_item.author)
+      comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
+        a.signup = Time.at(comment_author_item.creation).to_datetime
+      end
+      comment_author.name = comment_author_item.name
+      comment_author.save
+
+      c.commenter_id = comment_author.id
+      c.timestamp_creation = Time.at(comment_item.timestamps['creation']).to_datetime
+      c.body = comment_item.body
+      c.vote_count = comment_item.vote_count
+      c.karma = comment_item.karma
+      unless comment_item.timestamps['edition'].nil?
+        c.timestamp_edition = Time.at(comment_item.timestamps['edition']).to_datetime
+      end
+
+      news = News.find_by_url_internal(comment_item.news_url)
+
+      c.save
+      unless c.news_comments.exists?(:news => news, :news_index => comment_item.news_index)
+        c.news_comments.create(:news => news, :news_index => comment_item.news_index)
+      end
+
+    end
+
+  end
+
+  def comments
+
+    ids = params[:id].split(',')
+
+    ids.each do |id|
+      #redirect_to
+    end
+  end
+
+  # TODO Copy correct code from all_votes
   def news_votes
 
     # Get a list of news published between the last 60 and 30 days
@@ -215,6 +299,7 @@ class RetrieveController < ApplicationController
 
   end
 
+  # TODO Copy correct code from all_votes
   def comment_votes
 
     # Get a list of news published between the last 60 and 30 days

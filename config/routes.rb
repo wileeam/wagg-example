@@ -20,7 +20,9 @@ Rails.application.routes.draw do
 
   get 'retrieve/comment',                   to: 'retrieve#comment'
   get 'retrieve/comment/votes',             to: 'retrieve#comment_votes'
+  get 'retrieve/comment/:id',               to: 'retrieve#comment'
   get 'retrieve/comment/all',               to: 'retrieve#all_comments'
+  get 'retrieve/comments/:id',              to: 'retrieve#comments'
 
   get 'retrieve/vote',                      to: 'retrieve#vote'
   get 'retrieve/vote/all',                  to: 'retrieve#all_votes'
