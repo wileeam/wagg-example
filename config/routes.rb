@@ -17,6 +17,8 @@ Rails.application.routes.draw do
   get 'retrieve/news/:init_id/to/:end_id',  to: 'retrieve#news_interval'
   get 'retrieve/news/all',                  to: 'retrieve#all_news'
 
+  #DEBUG
+  get 'retrieve/fix_news',                  to: 'retrieve#fix_news'
 
   get 'retrieve/comment',                   to: 'retrieve#comment'
   get 'retrieve/comment/votes',             to: 'retrieve#comment_votes'

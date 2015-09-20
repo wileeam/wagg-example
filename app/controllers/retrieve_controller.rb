@@ -416,4 +416,84 @@ class RetrieveController < ApplicationController
 
   end
 
+  def fix_news
+
+    # Get a list of news missing meta-data (they were not closed by crawling date)
+    news_list = News.where(:karma => nil)
+    news_list.each do |news|
+      Rails.logger.info 'Completing meta-data for news -> %{url}' % {url:news.url_internal}
+
+      news_item = Wagg.crawl_news(news.url_internal, FALSE, FALSE)
+      if news_item.closed?
+        news.clicks = news_item.clicks
+        news.karma = news_item.karma
+        news.votes_count_anonymous = news_item.votes_count['anonymous']
+        news.votes_count_negative = news_item.votes_count['negative']
+        news.votes_count_positive = news_item.votes_count['positive']
+        news.comments_count = news_item.comments_count
+      end
+
+      # Store in database the changes
+      news.save
+    end
+
+    # Get a list of news with missing comments
+    news_list = News.where('comments_count != (SELECT count(*) FROM news_comments WHERE news_comments.news_id = news.id)')
+    news_list.each do |news|
+      Rails.logger.info 'Completing comments for news -> %{url}' % {url:news.url_internal}
+
+      news_item = Wagg.crawl_news(news.url_internal, TRUE, FALSE)
+
+      if news_item.comments_available?
+        news_item.comments.each do |news_comment_index, news_comment_item|
+
+          comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
+            comment_author_item = Wagg.crawl_author(news_comment_item.author)
+            comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
+              a.signup = Time.at(comment_author_item.creation).to_datetime
+            end
+            comment_author.name = comment_author_item.name
+            comment_author.save
+
+            c.commenter_id = comment_author.id
+            c.timestamp_creation = Time.at(news_comment_item.timestamps['creation']).to_datetime
+            c.body = news_comment_item.body
+            c.vote_count = news_comment_item.vote_count
+            c.karma = news_comment_item.karma
+            unless news_comment_item.timestamps['edition'].nil?
+              c.timestamp_edition = Time.at(news_comment_item.timestamps['edition']).to_datetime
+            end
+          end
+
+          if news_comment_item.votes_available?(news_item.timestamps)
+            news_comment_item.votes.each do |comment_vote|
+              vote_author = Author.find_or_initialize_by(name: comment_vote.author)
+              if vote_author.id.nil?
+                comment_vote_author_item = Wagg.crawl_author(comment_vote.author)
+                vote_author.id = comment_vote_author_item.id
+                vote_author.signup = Time.at(comment_vote_author_item.creation).to_datetime
+                vote_author.save
+              end
+              vote = Vote.new(
+                  voter_id: vote_author.id,
+                  timestamp: Time.at(comment_vote.timestamp).to_datetime,
+                  weight: comment_vote.weight
+              )
+              vote.votable = comment
+              vote.save
+              comment.votes << vote
+            end
+          end
+          #comment.save && comment.news_comments.create(:news => news, :news_index => news_comment_index)
+          comment.save
+          unless comment.news_comments.exists?(:news => news, :news_index => news_comment_index)
+            comment.news_comments.create(:news => news, :news_index => news_comment_index)
+          end
+        end
+      end
+      news.save
+    end
+
+  end
+
 end
