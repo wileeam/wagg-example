@@ -7,4 +7,13 @@ class Comment < ActiveRecord::Base
   has_many  :news,        :through => :news_comments
 
   validates_uniqueness_of     :id
+
+  def votes_available?
+    self.vote_count == 0 || self.votes.count > 0
+  end
+
+  def votes_consistent?
+    self.votes_available? && self.votes.count == self.vote_count
+  end
+
 end

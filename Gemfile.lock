@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: 38aa67d82ec97d2a22e37b6138f74eb94e1cc614
+  revision: 5370c8b9f3a1e83cb5f0a214c40f1953ad44ea6c
   specs:
-    wagg (0.6.1.pre3)
+    wagg (0.7.0.pre4)
       mechanize
 
 GEM
@@ -57,8 +57,16 @@ GEM
     coffee-script-source (1.9.1.1)
     composite_primary_keys (8.1.1)
       activerecord (~> 4.2.0)
+    daemons (1.2.3)
     debug_inspector (0.0.2)
-    domain_name (0.5.24)
+    delayed-web (0.3.0)
+      rails (>= 3.2.13, < 4.3.0)
+    delayed_job (4.1.1)
+      activesupport (>= 3.0, < 5.0)
+    delayed_job_active_record (4.1.0)
+      activerecord (>= 3.0, < 5)
+      delayed_job (>= 3.0, < 5)
+    domain_name (0.5.25)
       unf (>= 0.0.5, < 1.0.0)
     erubis (2.7.0)
     execjs (2.6.0)
@@ -71,7 +79,7 @@ GEM
     http-cookie (1.0.2)
       domain_name (~> 0.5)
     i18n (0.7.0)
-    jbuilder (2.3.1)
+    jbuilder (2.3.2)
       activesupport (>= 3.0.0, < 5)
       multi_json (~> 1.2)
     jquery-rails (4.0.5)
@@ -99,7 +107,7 @@ GEM
       webrobots (>= 0.0.9, < 0.2)
     mime-types (2.6.2)
     mini_portile (0.6.2)
-    minitest (5.8.0)
+    minitest (5.8.1)
     multi_json (1.11.2)
     mysql2 (0.3.20)
     nested_form (0.3.2)
@@ -156,7 +164,7 @@ GEM
     rdoc (4.2.0)
     remotipart (1.2.1)
     safe_yaml (1.0.4)
-    sass (3.4.18)
+    sass (3.4.19)
     sass-rails (5.0.4)
       railties (>= 4.0.0, < 5.0)
       sass (~> 3.1)
@@ -167,8 +175,8 @@ GEM
       json (~> 1.7, >= 1.7.7)
       rdoc (~> 4.0)
     spring (1.4.0)
-    sprockets (3.3.4)
-      rack (~> 1.0)
+    sprockets (3.4.0)
+      rack (> 1, < 3)
     sprockets-rails (2.3.3)
       actionpack (>= 3.0)
       activesupport (>= 3.0)
@@ -200,6 +208,9 @@ DEPENDENCIES
   byebug
   coffee-rails (~> 4.1.0)
   composite_primary_keys (~> 8.1.1)
+  daemons
+  delayed-web
+  delayed_job_active_record (>= 4.1.0)
   jbuilder (~> 2.0)
   jquery-rails
   mysql2 (~> 0.3.20)

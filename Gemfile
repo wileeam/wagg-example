@@ -2,7 +2,7 @@ source 'https://rubygems.org'
 
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '>=4.2.3'
+gem 'rails', '>= 4.2.3'
 # Use MySQL as the database for Active Record
 gem 'mysql2', '~> 0.3.20'
 # Use SCSS for stylesheets
@@ -13,6 +13,10 @@ gem 'uglifier', '>= 1.3.0'
 gem 'coffee-rails', '~> 4.1.0'
 # See https://github.com/rails/execjs#readme for more supported runtimes
 # gem 'therubyracer', platforms: :ruby
+# Use DelayedJob for background tasks
+gem 'delayed_job_active_record', '>= 4.1.0'
+gem 'delayed-web'
+gem 'daemons'
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
@@ -33,7 +37,6 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # gem 'capistrano-rails', group: :development
 
 gem 'wagg', :git => 'https://github.com/wileeam/wagg.git'
-#gem 'wagg', :git => '~/Dropbox/Ph.D in CS/wagg', :branch => 'master'
 gem 'composite_primary_keys', '~> 8.1.1'
 
 group :development, :test do

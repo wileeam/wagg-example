@@ -3,6 +3,10 @@ require 'wagg'
 class RetrieveController < ApplicationController
   include Queriable
 
+  def index
+    puts 'plop'
+  end
+
   def page
     redirect_to :update
   end
@@ -32,9 +36,12 @@ class RetrieveController < ApplicationController
     #(init_index..end_index).each do |page_index|
     (end_index).downto(init_index) do |page_index|
       # Get a list of news urls from page index
-      news_urls_page_list[page_index] = Wagg::Crawler::Page.new(page_index).news_urls
+      news_urls_page_list[page_index] = Wagg.page(page_index).news_urls
     end
     Rails.logger.info 'Parsing %{urls_size} URLs' %{urls_size:news_urls_page_list.map{|_,list| list.size}.inject{|sum,x| sum + x}}
+
+    #news_urls_page_list = Hash.new
+    #news_urls_page_list['2'] = ['https://www.meneame.net/m/Preg%C3%BAntame/manel-fontdevila-humorista-grafico-preguntame']
 
     # Parse and process each news in news_list to be stored in database
     news_urls_page_list.each do |page_index, news_urls_list|
@@ -44,13 +51,13 @@ class RetrieveController < ApplicationController
         if news.nil? || news.comments_count != news.comments.includes(:news_comments).count
           Rails.logger.info 'Parsing URL -> %{index}::%{url}' % {index:page_index, url:news_url}
           # First: Parse the URL into a news object (can be done via Page object too)
-          news_item = Wagg.crawl_news(news_url, with_comments, with_votes)
+          news_item = Wagg.news(news_url, with_comments, with_votes)
 
           # Third: Save main attributed of new news
           news = News.find_or_initialize_by(id: news_item.id) do |n|
             # Second: Check and create if needed author of news
             author = Author.find_or_initialize_by(id: news_item.author['id']) do |a|
-              news_author_item = Wagg.crawl_author(news_item.author['name'])
+              news_author_item = Wagg.author(news_item.author['name'])
               a.name = news_item.author['name']
               a.id = news_item.author['id']
               a.signup = Time.at(news_author_item.creation).to_datetime
@@ -90,7 +97,7 @@ class RetrieveController < ApplicationController
             news_item.votes.each do |news_vote|
               vote_author = Author.find_or_initialize_by(name: news_vote.author)
               if vote_author.id.nil?
-                news_vote_author_item = Wagg.crawl_author(news_vote.author)
+                news_vote_author_item = Wagg.author(news_vote.author)
                 vote_author.id = news_vote_author_item.id
                 vote_author.signup = Time.at(news_vote_author_item.creation).to_datetime
                 vote_author.save
@@ -111,7 +118,7 @@ class RetrieveController < ApplicationController
             news_item.comments.each do |news_comment_index, news_comment_item|
 
               comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
-                comment_author_item = Wagg.crawl_author(news_comment_item.author)
+                comment_author_item = Wagg.author(news_comment_item.author)
                 comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
                   a.signup = Time.at(comment_author_item.creation).to_datetime
                 end
@@ -132,7 +139,7 @@ class RetrieveController < ApplicationController
                 news_comment_item.votes.each do |comment_vote|
                   vote_author = Author.find_or_initialize_by(name: comment_vote.author)
                   if vote_author.id.nil?
-                    comment_vote_author_item = Wagg.crawl_author(comment_vote.author)
+                    comment_vote_author_item = Wagg.author(comment_vote.author)
                     vote_author.id = comment_vote_author_item.id
                     vote_author.signup = Time.at(comment_vote_author_item.creation).to_datetime
                     vote_author.save
@@ -163,12 +170,12 @@ class RetrieveController < ApplicationController
                   # Retrieve tracking index for that news
                   corrected_news_url_internal = '%{news_url_internal}/c0%{news_comment_index}' % {news_url_internal: news.url_internal, news_comment_index: news_comment_index}
                   puts corrected_news_url_internal
-                  corrected_news = Wagg.crawl_news(corrected_news_url_internal, TRUE, FALSE)
+                  corrected_news = Wagg.news(corrected_news_url_internal, TRUE, FALSE)
                   puts corrected_news
                   news_comment_item = corrected_news.comment(tracking_index)
                   puts news_comment_item
                   comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
-                    comment_author_item = Wagg.crawl_author(news_comment_item.author)
+                    comment_author_item = Wagg.author(news_comment_item.author)
                     comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
                       a.signup = Time.at(comment_author_item.creation).to_datetime
                     end
@@ -209,7 +216,7 @@ class RetrieveController < ApplicationController
 
     if News.exists?(id)
       news = News.find(id)
-      #news_object = Wagg.crawl_news(news.url_internal,TRUE,TRUE)
+      #news_object = Wagg.news(news.url_internal,TRUE,TRUE)
       puts news.url_internal
     else
       # Inform the user that there is no news with such id in the database
@@ -222,8 +229,8 @@ class RetrieveController < ApplicationController
     id = params[:id].to_i
 
     comment = Comment.find_or_initialize_by(id: id) do |c|
-      comment_item = Wagg.crawl_comment(id, FALSE)
-      comment_author_item = Wagg.crawl_author(comment_item.author)
+      comment_item = Wagg.comment(id, FALSE)
+      comment_author_item = Wagg.author(comment_item.author)
       comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
         a.signup = Time.at(comment_author_item.creation).to_datetime
       end
@@ -259,87 +266,6 @@ class RetrieveController < ApplicationController
     end
   end
 
-  # TODO Copy correct code from all_votes
-  def news_votes
-
-    # Get a list of news published between the last 60 and 30 days
-    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago).order(:timestamp_publication => :asc)
-    # Iterate over each news and retrieve the votes
-    news_list.each do |news|
-      Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
-      #Parse votes of news (last 30 days)
-      if (news.votes_count_positive + news.votes_count_negative) != news.votes.count
-        # Retrieve remaining votes for news
-        # TODO: Retrieve all votes and check again that retrieved votes match the news counting
-        news_votes_items = Wagg.crawl_news_for_votes(news.id)
-        if news_votes_items.size == (news.votes_count_positive + news.votes_count_negative)
-          news_votes_items.each do |news_vote_item|
-
-            vote_author_item = Wagg.crawl_author(news_vote_item.author)
-            vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
-              a.signup = Time.at(vote_author_item.creation).to_datetime
-            end
-            vote_author.name = vote_author_item.name
-            vote_author.save
-
-            vote = Vote.new(
-                voter_id: vote_author.id,
-                timestamp: Time.at(news_vote_item.timestamp).to_datetime,
-                weight: news_vote_item.weight
-            )
-            vote.votable = news
-            vote.save
-            news.votes << vote
-          end
-        else
-          Rails.logger.error 'Inconsistent votes for news -> %{url}' % {url:news.url_internal}
-        end
-      end
-    end
-
-  end
-
-  # TODO Copy correct code from all_votes
-  def comment_votes
-
-    # Get a list of news published between the last 60 and 30 days
-    news_list = News.where(:timestamp_publication => 60.days.ago..30.days.ago).order(:timestamp_publication => :asc)
-    # Get now all comments
-    news_list.each do |news|
-      Rails.logger.info 'Parsing votes for comments of news -> %{url}' % {url:news.url_internal}
-      comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago).order(:timestamp_creation => :asc)
-      comments_news_list.each do |comment|
-        # Parse votes of comment (last 30 days)
-        if !comment.vote_count.nil? && !comment.karma.nil? && comment.vote_count >0 && comment.votes.count != comment.vote_count
-          comment_votes_items = Wagg.crawl_comment_for_votes(comment.id)
-          if comment_votes_items.size == (comment.vote_count)
-            comment_votes_items.each do |comment_vote_item|
-
-              vote_author_item = Wagg.crawl_author(comment_vote_item.author)
-              vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
-                a.signup = Time.at(vote_author_item.creation).to_datetime
-              end
-              vote_author.name = vote_author_item.name
-              vote_author.save
-
-              vote = Vote.new(
-                  voter_id: vote_author.id,
-                  timestamp: Time.at(comment_vote_item.timestamp).to_datetime,
-                  weight: comment_vote_item.weight
-              )
-              vote.votable = comment
-              vote.save
-              comment.votes << vote
-            end
-          else
-            Rails.logger.error 'Inconsistent votes for comment -> %{id}' % {id:comment.id}
-          end
-        end
-      end
-    end
-
-  end
-
   def all_votes
 
     # Get a list of news published between the last 60 and 30 days
@@ -347,71 +273,22 @@ class RetrieveController < ApplicationController
 
     # Iterate over each news and retrieve the votes
     news_list.each do |news|
-      Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
-      #Parse votes of news (last 30 days)
+      # Parse votes of news (last 30 days)
       if (news.votes_count_positive + news.votes_count_negative) != news.votes.count
+        Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
         # Retrieve remaining votes for news
-        # TODO: Retrieve all votes and check again that retrieved votes match the news counting
-        news_votes_items = Wagg.crawl_news_for_votes(news.id)
-        if news_votes_items.size == (news.votes_count_positive + news.votes_count_negative)
-          news_votes_items.each do |news_vote_item|
-
-            vote_author_item = Wagg.crawl_author(news_vote_item.author)
-            vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
-              a.signup = Time.at(vote_author_item.creation).to_datetime
-            end
-            vote_author.name = vote_author_item.name
-            vote_author.save
-
-            vote = Vote.new(
-                voter_id: vote_author.id,
-                timestamp: Time.at(news_vote_item.timestamp).to_datetime,
-                weight: news_vote_item.weight
-            )
-            vote.votable = news
-            unless Vote.exists?([vote.voter_id, vote.votable_id, vote.votable_type])
-              vote.save
-              news.votes << vote
-            end
-          end
-        else
-          Rails.logger.error 'Inconsistent votes for news -> %{url}' % {url:news.url_internal}
-        end
+        Delayed::Job.enqueue(::ProcessNewsVotesJob.new(news))
       end
 
-      Rails.logger.info 'Parsing votes for comments of news -> %{url}' % {url:news.url_internal}
       comments_news_list = news.comments.where(:timestamp_creation => 60.days.ago..30.days.ago).order(:timestamp_creation => :asc)
       comments_news_list.each do |comment|
         # Parse votes of comment (last 30 days)
-        if !comment.vote_count.nil? && !comment.karma.nil? && comment.vote_count >0 && comment.votes.count != comment.vote_count
-          comment_votes_items = Wagg.crawl_comment_for_votes(comment.id)
-          if comment_votes_items.size == (comment.vote_count)
-            comment_votes_items.each do |comment_vote_item|
-
-              vote_author_item = Wagg.crawl_author(comment_vote_item.author)
-              vote_author = Author.find_or_initialize_by(id: vote_author_item.id) do |a|
-                a.signup = Time.at(vote_author_item.creation).to_datetime
-              end
-              vote_author.name = vote_author_item.name
-              vote_author.save
-
-              vote = Vote.new(
-                  voter_id: vote_author.id,
-                  timestamp: Time.at(comment_vote_item.timestamp).to_datetime,
-                  weight: comment_vote_item.weight
-              )
-              vote.votable = comment
-              unless Vote.exists?([vote.voter_id, vote.votable_id, vote.votable_type])
-                vote.save
-                comment.votes << vote
-              end
-            end
-          else
-            Rails.logger.error 'Inconsistent votes for comment -> %{id}' % {id:comment.id}
-          end
+        if !comment.vote_count.nil? && !comment.karma.nil? && comment.vote_count > 0 && comment.votes.count != comment.vote_count
+          Rails.logger.info 'Parsing votes for comment -> %{comment}' % {comment:comment.id}
+          # Retrieve remaining votes for comment
+          Delayed::Job.enqueue(::ProcessCommentVotesJob.new(comment))
         end
       end
-
     end
 
   end
@@ -419,11 +296,12 @@ class RetrieveController < ApplicationController
   def fix_news
 
     # Get a list of news missing meta-data (they were not closed by crawling date)
+    # TODO: add constraint in where that news is closed, otherwise gets parsed and it is a waste of time
     news_list = News.where(:karma => nil)
     news_list.each do |news|
       Rails.logger.info 'Completing meta-data for news -> %{url}' % {url:news.url_internal}
 
-      news_item = Wagg.crawl_news(news.url_internal, FALSE, FALSE)
+      news_item = Wagg.news(news.url_internal, FALSE, FALSE)
       if news_item.closed?
         news.clicks = news_item.clicks
         news.karma = news_item.karma
@@ -442,13 +320,13 @@ class RetrieveController < ApplicationController
     news_list.each do |news|
       Rails.logger.info 'Completing comments for news -> %{url}' % {url:news.url_internal}
 
-      news_item = Wagg.crawl_news(news.url_internal, TRUE, FALSE)
+      news_item = Wagg.news(news.url_internal, TRUE, FALSE)
 
       if news_item.comments_available?
         news_item.comments.each do |news_comment_index, news_comment_item|
 
           comment = Comment.find_or_initialize_by(id: news_comment_item.id) do |c|
-            comment_author_item = Wagg.crawl_author(news_comment_item.author)
+            comment_author_item = Wagg.author(news_comment_item.author)
             comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
               a.signup = Time.at(comment_author_item.creation).to_datetime
             end
@@ -469,7 +347,7 @@ class RetrieveController < ApplicationController
             news_comment_item.votes.each do |comment_vote|
               vote_author = Author.find_or_initialize_by(name: comment_vote.author)
               if vote_author.id.nil?
-                comment_vote_author_item = Wagg.crawl_author(comment_vote.author)
+                comment_vote_author_item = Wagg.author(comment_vote.author)
                 vote_author.id = comment_vote_author_item.id
                 vote_author.signup = Time.at(comment_vote_author_item.creation).to_datetime
                 vote_author.save
@@ -491,7 +369,7 @@ class RetrieveController < ApplicationController
           end
         end
       end
-      news.save
+      #news.save
     end
 
   end
