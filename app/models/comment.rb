@@ -8,6 +8,14 @@ class Comment < ActiveRecord::Base
 
   validates_uniqueness_of     :id
 
+  def closed?
+    30.days.ago >= self.timestamp_creation
+  end
+
+  def open?
+    !self.closed?
+  end
+
   def votes_available?
     self.vote_count == 0 || self.votes.count > 0
   end

@@ -7,7 +7,7 @@ class ProcessCommentVotesJob < Struct.new(:comment)
   def enqueue(job)
     #job.delayed_reference_id   = news_id
     #job.delayed_reference_type = 'news'
-    job.priority = 5
+    job.priority = 2
     job.save!
   end
 
@@ -16,7 +16,7 @@ class ProcessCommentVotesJob < Struct.new(:comment)
     if comment_votes_items.size == (comment.vote_count)
       comment_votes_items.each do |comment_vote_item|
         vote_author = comment_vote_item.author
-        vote_timestamp = Time.at(comment_vote_item.timestamp).to_datetime
+        vote_timestamp = comment_vote_item.timestamp
         vote_weight = comment_vote_item.weight
         Delayed::Job.enqueue(::ProcessVoteJob.new(vote_author, vote_timestamp, vote_weight, comment, "Comment"))
       end

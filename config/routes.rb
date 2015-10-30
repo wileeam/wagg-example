@@ -19,9 +19,6 @@ Rails.application.routes.draw do
   get 'retrieve/news/:init_id/to/:end_id',  to: 'retrieve#news_interval'
   get 'retrieve/news/all',                  to: 'retrieve#all_news'
 
-  #DEBUG
-  get 'retrieve/fix_news',                  to: 'retrieve#fix_news'
-
   get 'retrieve/comment',                   to: 'retrieve#comment'
   get 'retrieve/comment/votes',             to: 'retrieve#comment_votes'
   get 'retrieve/comment/:id',               to: 'retrieve#comment'
@@ -29,9 +26,15 @@ Rails.application.routes.draw do
   get 'retrieve/comments/:id',              to: 'retrieve#comments'
 
   get 'retrieve/vote',                      to: 'retrieve#vote'
-  get 'retrieve/vote/all',                  to: 'retrieve#all_votes'
+  get 'retrieve/vote/all',                  to: 'retrieve#votes'
 
-  get 'updates',                            to: 'updates#index'
+  get 'update',                             to: 'update#index'
+  #get 'update/all',                         to: 'update#index'
+  get 'update/news',                        to: 'update#news'
+  #get 'update/news/all',                    to: 'update#news'
+  get 'update/comments',                    to: 'update#comments'
+  #get 'update/comments/all',                to: 'update#comments'
+
 
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".

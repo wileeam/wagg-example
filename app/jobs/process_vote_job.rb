@@ -16,7 +16,7 @@ class ProcessVoteJob < Struct.new(:vote_author, :vote_timestamp, :vote_weight, :
     unless Vote.exists?([author.id, vote_votable.id, vote_votable_type])
       vote = Vote.new(
           voter_id: author.id,
-          timestamp: vote_timestamp,
+          timestamp: Time.at(vote_timestamp).to_datetime,
           weight: vote_weight
       )
       vote.votable = vote_votable

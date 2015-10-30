@@ -10,4 +10,13 @@ class News < ActiveRecord::Base
   has_many    :comments,      :through      => :news_comments
 
   validates_uniqueness_of     :id
+
+  def closed?
+    30.days.ago >= self.timestamp_publication
+  end
+
+  def open?
+    !self.closed?
+  end
+
 end

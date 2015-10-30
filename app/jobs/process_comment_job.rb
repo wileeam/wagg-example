@@ -1,5 +1,4 @@
-class ProcessCommentJob < Struct.new(:comment_id, :comment_author, :comment_timestamps, :comment_body, :comment_vote_count,
-                                     :comment_karma, :comment_news, :comment_news_index, :comment_votes)
+class ProcessCommentJob < Struct.new(:comment_item)
 
   def queue_name
     'comments'
@@ -14,30 +13,36 @@ class ProcessCommentJob < Struct.new(:comment_id, :comment_author, :comment_time
 
   def perform
     ### Retrieve or create comment with provided data
-    comment = Comment.find_or_initialize_by(id: comment_id) do |c|
-      author = Author.find_or_update_by_name(comment_author)
+    comment = Comment.find_or_initialize_by(id: comment_item.id) do |c|
+      author = Author.find_or_update_by_name(comment_item.author)
       c.commenter_id = author.id
-      c.timestamp_creation = comment_timestamps['creation']
-      c.body = comment_body
-      c.vote_count = comment_vote_count
-      c.karma = comment_karma
-      unless comment_timestamps['edition'].nil?
-        c.timestamp_edition = comment_timestamps['edition']
+      c.body = comment_item.body
+      c.timestamp_creation = Time.at(comment_item.timestamps['creation']).to_datetime
+      unless comment_item.timestamps['edition'].nil?
+        c.timestamp_edition = Time.at(comment_item.timestamps['edition']).to_datetime
       end
-      c.save
     end
 
+    unless comment_item.open?
+      comment.vote_count = comment_item.votes_count
+      comment.karma = comment_item.karma
+    end
+
+    comment.save
+
     ### Link comment with the news if it wasn't already
+    comment_news = News.find_by_url_internal(comment_item.news_url)
+    comment_news_index = comment_item.news_index
     unless comment.news_comments.exists?(:news => comment_news, :news_index => comment_news_index)
       comment.news_comments.create(:news => comment_news, :news_index => comment_news_index)
     end
 
     ### Comment's votes retrieval if available
-    unless comment_votes.nil? || comment_votes.empty?
-      comment_votes.each do |comment_vote|
-        Delayed::Job.enqueue(::ProcessVoteJob.new(comment_vote['author'], comment_vote['timestamp'], comment_vote['weight'], comment, "Comment"))
-      end
-    end
+    #unless comment_votes.nil? || comment_votes.empty?
+    #  comment_votes.each do |comment_vote|
+    #    Delayed::Job.enqueue(::ProcessVoteJob.new(comment_vote['author'], comment_vote['timestamp'], comment_vote['weight'], comment, "Comment"))
+    #  end
+    #end
   end
 
   def before(job)
