@@ -12,15 +12,20 @@ class ProcessVoteJob < Struct.new(:vote_author, :vote_timestamp, :vote_weight, :
   end
 
   def perform
-    author = Author.find_or_update_by_name(vote_author)
+    # TODO: Document the following (basically we try the database before hitting the site again)
+    #       We get an extra query at the expense of not hitting the site if votes exists already
+    author = Author.find_by(:name => vote_author)
     unless Vote.exists?([author.id, vote_votable.id, vote_votable_type])
+      author = Author.find_or_update_by_name(vote_author)
       vote = Vote.new(
           voter_id: author.id,
           timestamp: Time.at(vote_timestamp).to_datetime,
           weight: vote_weight
       )
       vote.votable = vote_votable
-      vote.save
+      unless Vote.exists?([author.id, vote_votable.id, vote_votable_type])
+        vote.save
+      end
       vote_votable.votes << vote
       #vote_votable.save
     end
