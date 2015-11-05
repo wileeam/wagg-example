@@ -13,7 +13,7 @@ module WaggExample
     # Application configuration should go into files in config/initializers
     # -- all .rb files in that directory are automatically loaded.
 
-    config.autoload_paths << Rails.root.join('jobs')
+    config.autoload_paths << Rails.root.join('app/jobs')
 
     # Set Time.zone default to the specified zone and make Active Record auto-convert to this zone.
     # Run "rake -D time" for a list of tasks for finding time zone names. Default is UTC.
@@ -29,4 +29,20 @@ module WaggExample
     # Set the queuing system to delayed_job gem
     config.active_job.queue_adapter = :delayed_job
   end
+
+  # App constants
+  JOB_QUEUE = Hash.new
+  JOB_QUEUE['authors'] = 'authors'
+  JOB_QUEUE['news'] = 'news'
+  JOB_QUEUE['comments'] = 'comments'
+  JOB_QUEUE['votes'] = 'votes'
+  JOB_QUEUE['voting_lists'] = 'voting_lists'
+
+
+  JOB_PRIORITY = Hash.new
+  JOB_PRIORITY['authors'] = 1
+  JOB_PRIORITY['news'] = 10
+  JOB_PRIORITY['comment'] = 10
+  JOB_PRIORITY['vote'] = 5
+  JOB_PRIORITY['voting_lists'] = 4
 end

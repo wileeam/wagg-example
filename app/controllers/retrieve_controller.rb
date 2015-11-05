@@ -48,7 +48,7 @@ class RetrieveController < ApplicationController
         news = News.find_by_url_internal(news_url)
         if news.nil? || news.comments_count != news.comments.includes(:news_comments).count
           Rails.logger.info 'Parsing URL -> %{index}::%{url}' % {index:page_index, url:news_url}
-          Delayed::Job.enqueue(::ProcessNewsJob.new(news_url))
+          Delayed::Job.enqueue(NewsProcessor::NewNewsJob.new(news_url))
         end
       end
     end
@@ -102,7 +102,7 @@ class RetrieveController < ApplicationController
         c.timestamp_edition = Time.at(comment_item.timestamps['edition']).to_datetime
       end
 
-      news = News.find_by_url_internal(comment_item.news_url)
+      news = News.find(:url_internal => comment_item.news_url)
 
       c.save
       unless c.news_comments.exists?(:news => news, :news_index => comment_item.news_index)
@@ -132,7 +132,7 @@ class RetrieveController < ApplicationController
       if news.closed? && !news.karma.nil? && (news.votes_count_positive + news.votes_count_negative) != news.votes.count
         Rails.logger.info 'Parsing votes for news -> %{url}' % {url:news.url_internal}
         # Retrieve remaining votes for news
-        Delayed::Job.enqueue(::ProcessNewsVotesJob.new(news))
+        Delayed::Job.enqueue(VotesProcessor::NewsVotesJob.new(news))
       end
     end
 
@@ -143,7 +143,7 @@ class RetrieveController < ApplicationController
       if comment.closed? && !comment.karma.nil? && !comment.vote_count.nil? && comment.vote_count > 0 && comment.votes.count != comment.vote_count
         Rails.logger.info 'Parsing votes for comment -> %{comment}' % {comment:comment.id}
         # Retrieve remaining votes for comment
-        Delayed::Job.enqueue(::ProcessCommentVotesJob.new(comment))
+        Delayed::Job.enqueue(VotesProcessor::CommentVotesJob.new(comment))
       end
     end
 

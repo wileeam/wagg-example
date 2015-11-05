@@ -16,7 +16,7 @@ class CreateComments < ActiveRecord::Migration
 
     change_column   :comments, :id, :integer, null: false, unique: true
 
-    add_foreign_key :comments, :authors, name: :commenter, column: :commenter_id
+    add_foreign_key :comments_processor, :authors, name: :commenter, column: :commenter_id
     #add_foreign_key :comments, :news,    name: :news,      column: :news_id
 
     add_index :comments,    :id,           unique: true
