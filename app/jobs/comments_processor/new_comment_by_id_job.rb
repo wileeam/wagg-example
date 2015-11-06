@@ -2,13 +2,13 @@ module CommentsProcessor
   class NewCommentByIdJob < Struct.new(:comment_id)
 
     def queue_name
-      WaggExample::JOB_QUEUE['comment']
+      WaggExample::JOB_QUEUE['comments']
     end
 
     def enqueue(job)
       #job.delayed_reference_id   = comment_id
       #job.delayed_reference_type = 'comment'
-      job.priority = WaggExample::JOB_PRIORITY['comment']
+      job.priority = WaggExample::JOB_PRIORITY['comments']
       job.save!
     end
 

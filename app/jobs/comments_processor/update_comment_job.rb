@@ -2,13 +2,13 @@ module CommentsProcessor
   class UpdateCommentJob < Struct.new(:comment_id)
 
     def queue_name
-      WaggExample::JOB_QUEUE['comment']
+      WaggExample::JOB_QUEUE['comments']
     end
 
     def enqueue(job)
       #job.delayed_reference_id   = comment_id
       #job.delayed_reference_type = 'comment'
-      job.priority = WaggExample::JOB_PRIORITY['comment'] + 5
+      job.priority = WaggExample::JOB_PRIORITY['comments'] + 5
       job.save!
     end
 
@@ -34,7 +34,7 @@ module CommentsProcessor
         # TODO
 
         ### Link comment with the news if it wasn't already
-        comment_news = News.find(:url_internal => comment_item.news_url)
+        comment_news = News.find_by(:url_internal => comment_item.news_url)
         comment_news_index = comment_item.news_index
         unless comment.news_comments.exists?(:news => comment_news, :news_index => comment_news_index)
           comment.news_comments.create(:news => comment_news, :news_index => comment_news_index)

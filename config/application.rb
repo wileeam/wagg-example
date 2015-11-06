@@ -32,17 +32,27 @@ module WaggExample
 
   # App constants
   JOB_QUEUE = Hash.new
-  JOB_QUEUE['authors'] = 'authors'
+  JOB_QUEUE['author'] = 'authors'
   JOB_QUEUE['news'] = 'news'
-  JOB_QUEUE['comments'] = 'comments'
-  JOB_QUEUE['votes'] = 'votes'
-  JOB_QUEUE['voting_lists'] = 'voting_lists'
+  JOB_QUEUE['comment'] = 'comments'
+  JOB_QUEUE['vote'] = 'votes'
+  JOB_QUEUE['voting_list'] = 'voting_lists'
+
+  JOB_QUEUE['authors'] = JOB_QUEUE['author']
+  JOB_QUEUE['comments'] = JOB_QUEUE['comment']
+  JOB_QUEUE['votes'] = JOB_QUEUE['vote']
+  JOB_QUEUE['voting_lists'] = JOB_QUEUE['voting_list']
 
 
   JOB_PRIORITY = Hash.new
-  JOB_PRIORITY['authors'] = 1
+  JOB_PRIORITY['author'] = 1
   JOB_PRIORITY['news'] = 10
-  JOB_PRIORITY['comment'] = 10
+  JOB_PRIORITY['comment'] = 9
   JOB_PRIORITY['vote'] = 5
-  JOB_PRIORITY['voting_lists'] = 4
+  JOB_PRIORITY['voting_list'] = 4
+
+  JOB_PRIORITY['authors'] = JOB_PRIORITY['author']
+  JOB_PRIORITY['comments'] = JOB_PRIORITY['comment']
+  JOB_PRIORITY['votes'] = JOB_PRIORITY['vote']
+  JOB_PRIORITY['voting_lists'] = JOB_PRIORITY['voting_list']
 end
