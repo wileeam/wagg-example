@@ -20,6 +20,14 @@ class News < ActiveRecord::Base
     !self.closed?
   end
 
+  def complete?
+    !self.karma.nil?
+  end
+
+  def incomplete?
+    !self.complete?
+  end
+
   module Scopes
     def open
       where(:timestamp_publication => 30.days.ago..Time.now)
@@ -30,7 +38,7 @@ class News < ActiveRecord::Base
     end
 
     def last(time)
-      where(:timestamp_publication => time..Time.now)
+      where(:timestamp_publication => time.days.ago..Time.now)
     end
 
     def incomplete

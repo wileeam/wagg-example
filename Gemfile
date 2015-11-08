@@ -18,6 +18,10 @@ gem 'delayed_job_active_record', '>= 4.1.0'
 gem 'delayed-web'
 gem 'daemons'
 
+# Some helper for non-sense deadlocks
+gem 'transaction_retry'
+
+
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
 # Turbolinks makes following links in your web application faster. Read more: https://github.com/rails/turbolinks

@@ -26,8 +26,7 @@ module NewsProcessor
         n.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
         n.category = news_item.category
         news_item.tags.each do |t|
-          tag = Tag.find_or_initialize_by(name: t)
-          tag.save
+          tag = Tag.find_or_create_by(name: t)
           n.tags << tag
         end
       end
@@ -45,15 +44,15 @@ module NewsProcessor
 
       news.save
 
-      #### Comment retrieval if available
-      #unless news_item.comments.nil? || news_item.comments.empty?
-        news_item.comments(TRUE).each do |_, news_comment|
-          Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
+      # Comments retrieval ONLY if available
+      if news_item.comments_available? && !news_item.comments.empty?
+        news_item.comments.each do |_, news_comment|
+          Delayed::Job.enqueue(CommentsProcessor::NewCommentJob(news_comment))
         end
-      #end
-
+      end
 
       ### News's votes retrieval if available
+      #TODO
       #unless !news_parameters['with_votes'] || news_item.votes.nil? || news_item.votes.empty?
       #  news_item.votes.each do |news_vote|
       #    Delayed::Job.enqueue(::ProcessVoteJob.new(news_vote['author'], news_vote['timestamp'], news_vote['weight'], news, "News"))

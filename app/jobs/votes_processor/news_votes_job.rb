@@ -2,13 +2,13 @@ module VotesProcessor
   class NewsVotesJob < Struct.new(:news)
 
     def queue_name
-      JOB_QUEUE['voting_lists']
+      WaggExample::JOB_QUEUE['voting_lists']
     end
 
     def enqueue(job)
       #job.delayed_reference_id   = news_id
       #job.delayed_reference_type = 'news'
-      job.priority = JOB_PRIORITY['voting_lists']
+      job.priority = WaggExample::JOB_PRIORITY['voting_lists']
       job.save!
     end
 

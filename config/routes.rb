@@ -32,6 +32,7 @@ Rails.application.routes.draw do
   #get 'update/all',                         to: 'update#index'
   get 'update/news',                        to: 'update#news'
   #get 'update/news/all',                    to: 'update#news'
+  get 'update/comment/:id',                 to: 'update#comment'
   get 'update/comments',                    to: 'update#comments'
   #get 'update/comments/all',                to: 'update#comments'
 

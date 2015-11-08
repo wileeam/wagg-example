@@ -15,7 +15,11 @@ module NewsProcessor
     def perform
       news = News.find(news_id)
 
-      if !news.nil? && news.closed?
+      if news.nil?
+        # TODO: Recover and create a new entry with this id for news. Possible?
+        error = "Couldn't find News record with id='%{id}'" %{id: news_id}
+        raise ActiveRecord::RecordNotFound, error
+      elsif news.closed?
         # Retrieve the news from the site
         news_item = Wagg.news(news.url_internal)
 
@@ -23,9 +27,9 @@ module NewsProcessor
         news.title = news_item.title
         news.description = news_item.description
         news.category = news_item.category
+        news.tags.clear
         news_item.tags.each do |t|
-          tag = Tag.find_or_initialize_by(name: t)
-          tag.save
+          tag = Tag.find_or_create_by(name: t)
           news.tags << tag
         end
 
@@ -41,26 +45,31 @@ module NewsProcessor
         news.save
 
         # Check the name of the author (if it changed, the check is just a query)
-        # TODO
+        news_author = Author.find_by(:id => news_item.author['id'])
+        news_author.name = news_item.author['name']
+        news_author.save
 
-        # Check comments
-        # TODO
-        #### Comment retrieval if available
-        #unless news_item.comments.nil? || news_item.comments.empty?
-        #news_item.comments(TRUE).each do |_, news_comment|
-        #  Delayed::Job.enqueue(::ProcessCommentJob.new(news_comment))
-        #end
-        #end
+        # Check comments and ONLY update if needed
+        if news_item.comments_available? && !news_item.comments.empty?
+          news_item.comments.each do |_, news_comment|
+            comment = Comment.find(news_comment.id)
+            if comment.nil?
+              Delayed::Job.enqueue(CommentsProcessor::NewCommentByIdJob(news_comment.id))
+            elsif !comment.complete?
+              Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob(news_comment))
+            end
+          end
+        end
 
-        # Check news' votes
-        # TODO
-        ### News's votes retrieval if available
-        #unless !news_parameters['with_votes'] || news_item.votes.nil? || news_item.votes.empty?
-        #  news_item.votes.each do |news_vote|
-        #    Delayed::Job.enqueue(::ProcessVoteJob.new(news_vote['author'], news_vote['timestamp'], news_vote['weight'], news, "News"))
-        #  end
-        #end
-
+        # Check news' votes and update (votes are added when news is closed)
+        if news_item.votes_available?
+          news_item.votes.each do |news_vote|
+            vote_author = Author.find_or_update_by_name(:name => news_vote.author)
+            unless Vote.exists?([vote_author.id, news.id, 'News'])
+              Delayed::Job.enqueue(VotesProcessor::NewVoteJob(vote_author.name, news_vote.timestamp, news_vote.weight, news, "News"))
+            end
+          end
+        end
       end
 
     end

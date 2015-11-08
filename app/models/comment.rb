@@ -1,5 +1,5 @@
 class Comment < ActiveRecord::Base
-  belongs_to  :commenter, foreign_key: :commenter_id#, inverse_of: :authors
+  belongs_to  :commenter, foreign_key: :commenter_id
 
   has_many  :votes,         :as      => :votable
 
@@ -9,11 +9,19 @@ class Comment < ActiveRecord::Base
   validates_uniqueness_of     :id
 
   def closed?
-    30.days.ago >= self.timestamp_creation
+    self.timestamp_creation <= 30.days.ago
   end
 
   def open?
     !self.closed?
+  end
+
+  def complete?
+    !self.karma.nil?
+  end
+
+  def incomplete?
+    !self.complete?
   end
 
   def votes_available?

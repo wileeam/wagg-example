@@ -14,7 +14,7 @@ module CommentsProcessor
 
     def perform
       ### Retrieve or create comment with provided data
-      comment = Comment.find_or_initialize_by(id: comment_item.id) do |c|
+      comment = Comment.find_or_initialize_by(:id => comment_item.id) do |c|
         author = Author.find_or_update_by_name(comment_item.author)
         c.commenter_id = author.id
         c.body = comment_item.body
@@ -38,12 +38,15 @@ module CommentsProcessor
         comment.news_comments.create(:news => comment_news, :news_index => comment_news_index)
       end
 
-      ### Comment's votes retrieval if available
-      #unless comment_votes.nil? || comment_votes.empty?
-      #  comment_votes.each do |comment_vote|
-      #    Delayed::Job.enqueue(::ProcessVoteJob.new(comment_vote['author'], comment_vote['timestamp'], comment_vote['weight'], comment, "Comment"))
-      #  end
-      #end
+      # Check comment' votes and update (votes are added when comment is closed)
+      if comment_item.closed? && comment_item.votes_available?
+        comment_item.votes.each do |comment_vote|
+          vote_author = Author.find_or_update_by_name(:name => comment_vote.author)
+          unless Vote.exists?([vote_author.id, comment.id, 'Comment'])
+            Delayed::Job.enqueue(VotesProcessor::NewVoteJob(vote_author.name, comment_vote.timestamp, comment_vote.weight, comment, "Comment"))
+          end
+        end
+      end
     end
 
     def before(job)

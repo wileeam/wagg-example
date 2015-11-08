@@ -92,8 +92,8 @@ ActiveRecord::Schema.define(version: 20151017181517) do
   end
 
   create_table "news_tags", id: false, force: :cascade do |t|
-    t.integer "news_id", limit: 4, null: false
-    t.integer "tag_id",  limit: 4, null: false
+    t.integer "news_id", limit: 4
+    t.integer "tag_id",  limit: 4
   end
 
   add_index "news_tags", ["news_id"], name: "index_news_tags_on_news_id", using: :btree
@@ -119,5 +119,7 @@ ActiveRecord::Schema.define(version: 20151017181517) do
 
   add_foreign_key "comments", "authors", column: "commenter_id", name: "commenter"
   add_foreign_key "news", "authors", column: "poster_id", name: "poster"
+  add_foreign_key "news_tags", "news", name: "news"
+  add_foreign_key "news_tags", "tags", name: "tag"
   add_foreign_key "votes", "authors", column: "voter_id", name: "voter"
 end

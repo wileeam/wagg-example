@@ -13,14 +13,18 @@ module CommentsProcessor
     end
 
     def perform
-      news = Comment.find(comment_id)
+      comment = Comment.find(comment_id)
 
-      if !comment.nil? && comment.closed?
+      if comment.nil?
+        # TODO: Recover and create a new entry with this id for comment. Possible?
+        error = "Couldn't find Comment record with id='%{id}'" %{id: comment_id}
+        raise ActiveRecord::RecordNotFound, error
+      elsif comment.closed?
+        # Retrieve the comment from the site
         comment_item = Wagg.comment(comment_id)
 
         # Update everything that is possible to have changed
         comment.body = comment_item.body
-        comment.timestamp_creation = Time.at(comment_item.timestamps['creation']).to_datetime
         unless comment_item.timestamps['edition'].nil?
           comment.timestamp_edition = Time.at(comment_item.timestamps['edition']).to_datetime
         end
@@ -31,7 +35,9 @@ module CommentsProcessor
         comment.save
 
         # Check the name of the author (if it changed, the check is just a query)
-        # TODO
+        comment_author = Author.find_or_update_by_name(comment_item.author)
+        comment_author.name = comment_item.author
+        comment_author.save
 
         ### Link comment with the news if it wasn't already
         comment_news = News.find_by(:url_internal => comment_item.news_url)
@@ -40,15 +46,15 @@ module CommentsProcessor
           comment.news_comments.create(:news => comment_news, :news_index => comment_news_index)
         end
 
-        # Check comment's votes
-        # TODO
-        ### Comment's votes retrieval if available
-        #unless comment_votes.nil? || comment_votes.empty?
-        #  comment_votes.each do |comment_vote|
-        #    Delayed::Job.enqueue(::ProcessVoteJob.new(comment_vote['author'], comment_vote['timestamp'], comment_vote['weight'], comment, "Comment"))
-        #  end
-        #end
-
+        # Check comment' votes and update (votes are added when comment is closed)
+        if comment_item.votes_available?
+          comment_item.votes.each do |comment_vote|
+            vote_author = Author.find_or_update_by_name(:name => comment_vote.author)
+            unless Vote.exists?([vote_author.id, comment.id, 'Comment'])
+              Delayed::Job.enqueue(VotesProcessor::NewVoteJob(vote_author.name, comment_vote.timestamp, comment_vote.weight, comment, "Comment"))
+            end
+          end
+        end
       end
 
 

@@ -1,25 +1,22 @@
 module VotesProcessor
+  #TODO: Rework parameters into one single parameter
   class NewVoteJob < Struct.new(:vote_author, :vote_timestamp, :vote_weight, :vote_votable, :vote_votable_type)
 
     def queue_name
-      JOB_PRIORITY['votes']
+      WaggExample::JOB_QUEUE['votes']
     end
 
     def enqueue(job)
       #job.delayed_reference_id   = vote_votable
       #job.delayed_reference_type = 'vote'
-      job.priority = JOB_PRIORITY['votes']
+      job.priority = WaggExample::JOB_PRIORITY['votes']
       job.save!
     end
 
     def perform
       # TODO: Document the following (basically we try the database before hitting the site again)
       #       We get an extra query at the expense of not hitting the site if votes exists already
-      if Author.exists?(:name => vote_author)
-        author = Author.find_by(:name => vote_author)
-      else
-        author = Author.find_or_update_by_name(vote_author)
-      end
+      author = Author.find_or_update_by_name(vote_author)
 
       unless Vote.exists?([author.id, vote_votable.id, vote_votable_type])
         author = Author.find_or_update_by_name(vote_author)

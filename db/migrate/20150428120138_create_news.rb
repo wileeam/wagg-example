@@ -3,6 +3,7 @@ class CreateNews < ActiveRecord::Migration
     create_table :news do |t|
       t.text        :title
       t.text        :description
+      t.string      :category, :limit => 191
       t.datetime    :timestamp_creation
       t.datetime    :timestamp_publication
       t.text        :url_internal
@@ -15,7 +16,6 @@ class CreateNews < ActiveRecord::Migration
       t.integer     :comments_count
 
       t.references  :poster
-      t.string      :category, :limit => 191
 
       t.timestamps null: false
     end
