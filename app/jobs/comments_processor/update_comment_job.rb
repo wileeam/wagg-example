@@ -46,7 +46,7 @@ module CommentsProcessor
         # Check comment' votes and update (votes are added when comment is closed)
         if comment_item.votes_available?
           comment_item.votes.each do |comment_vote|
-            vote_author = Author.find_or_update_by_name(:name => comment_vote.author)
+            vote_author = Author.find_or_update_by_name(comment_vote.author)
             unless Vote.exists?([vote_author.id, comment.id, 'Comment'])
               Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, comment_vote.timestamp, comment_vote.weight, comment, "Comment"))
             end
