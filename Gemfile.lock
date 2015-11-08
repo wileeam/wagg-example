@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: 0e7f73d554241467e46456d320dce80a388a02a4
+  revision: 3c693e445efcbe9952b69b1855d15dc76d2d448a
   specs:
-    wagg (0.8.3.pre5)
+    wagg (0.8.4.pre5)
       mechanize
 
 GEM

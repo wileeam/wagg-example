@@ -1,5 +1,5 @@
 module CommentsProcessor
-  class UpdateCommentJob < Struct.new(:comment_id)
+  class UpdateCommentJob < Struct.new(:comment_item)
 
     def queue_name
       WaggExample::JOB_QUEUE['comments']
@@ -13,16 +13,13 @@ module CommentsProcessor
     end
 
     def perform
-      comment = Comment.find(comment_id)
+      comment = Comment.find(comment_item.id)
 
       if comment.nil?
         # TODO: Recover and create a new entry with this id for comment. Possible?
-        error = "Couldn't find Comment record with id='%{id}'" %{id: comment_id}
+        error = "Couldn't find Comment record with id='%{id}'" %{id: comment_item.id}
         raise ActiveRecord::RecordNotFound, error
       elsif comment.closed?
-        # Retrieve the comment from the site
-        comment_item = Wagg.comment(comment_id)
-
         # Update everything that is possible to have changed
         comment.body = comment_item.body
         unless comment_item.timestamps['edition'].nil?
