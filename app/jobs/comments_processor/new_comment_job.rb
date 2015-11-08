@@ -43,7 +43,7 @@ module CommentsProcessor
         comment_item.votes.each do |comment_vote|
           vote_author = Author.find_or_update_by_name(:name => comment_vote.author)
           unless Vote.exists?([vote_author.id, comment.id, 'Comment'])
-            Delayed::Job.enqueue(VotesProcessor::NewVoteJob(vote_author.name, comment_vote.timestamp, comment_vote.weight, comment, "Comment"))
+            Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, comment_vote.timestamp, comment_vote.weight, comment, "Comment"))
           end
         end
       end

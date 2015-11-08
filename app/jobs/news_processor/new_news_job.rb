@@ -47,7 +47,7 @@ module NewsProcessor
       # Comments retrieval ONLY if available
       if news_item.comments_available? && !news_item.comments.empty?
         news_item.comments.each do |_, news_comment|
-          Delayed::Job.enqueue(CommentsProcessor::NewCommentJob(news_comment))
+          Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
         end
       end
 

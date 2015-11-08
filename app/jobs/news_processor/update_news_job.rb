@@ -54,9 +54,9 @@ module NewsProcessor
           news_item.comments.each do |_, news_comment|
             comment = Comment.find(news_comment.id)
             if comment.nil?
-              Delayed::Job.enqueue(CommentsProcessor::NewCommentByIdJob(news_comment.id))
+              Delayed::Job.enqueue(CommentsProcessor::NewCommentByIdJob.new(news_comment.id))
             elsif !comment.complete?
-              Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob(news_comment))
+              Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob.new(news_comment))
             end
           end
         end
@@ -66,7 +66,7 @@ module NewsProcessor
           news_item.votes.each do |news_vote|
             vote_author = Author.find_or_update_by_name(:name => news_vote.author)
             unless Vote.exists?([vote_author.id, news.id, 'News'])
-              Delayed::Job.enqueue(VotesProcessor::NewVoteJob(vote_author.name, news_vote.timestamp, news_vote.weight, news, "News"))
+              Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news, "News"))
             end
           end
         end
