@@ -16,6 +16,7 @@ class Comment < ActiveRecord::Base
     !self.closed?
   end
 
+  # TODO Find a better way to assess this (we consider downvoted comments and those from deleted users nil too here)
   def complete?
     !self.karma.nil?
   end

@@ -8,12 +8,14 @@ class UpdateController < ApplicationController
 
   def news
     if params.has_key?(:last)
-      # Update :latest news
+      # Update :latest news (in days)
+      # Nothe this option will cause high load as it does not check whether news is closed or not for example
       news_list = News.last(params[:last].to_i).order(:timestamp_publication => :asc)
     else
       # Update news that were open while they were retrieved (if they are now closed of course)
       news_list = News.closed.incomplete.order(:timestamp_publication => :asc)
     end
+
     news_list.each do |news|
       Rails.logger.info 'Completing meta-data for news -> %{url}' % {url:news.url_internal}
       Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(news.id))

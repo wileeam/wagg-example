@@ -20,6 +20,7 @@ module NewsProcessor
         error = "Couldn't find News record with id='%{id}'" %{id: news_id}
         raise ActiveRecord::RecordNotFound, error
       elsif news.closed?
+        # TODO Maybe checking the 'updated_at' field can minimize unnecessary parsing
         # Retrieve the news from the site
         news_item = Wagg.news(news.url_internal)
 
@@ -27,10 +28,13 @@ module NewsProcessor
         news.title = news_item.title
         news.description = news_item.description
         news.category = news_item.category
-        news.tags.clear
-        news_item.tags.each do |t|
-          tag = Tag.find_or_create_by(name: t)
-          news.tags << tag
+        # TODO Do compare the tags besides the size (the latter is a very light check only)
+        if news.tags.count != news_item.tags.size
+          news.tags.clear
+          news_item.tags.each do |t|
+            tag = Tag.find_or_create_by(name: t)
+            news.tags << tag
+          end
         end
 
         news.url_external = news_item.urls['external']

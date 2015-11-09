@@ -54,7 +54,6 @@ module CommentsProcessor
         end
       end
 
-
     end
 
     def before(job)

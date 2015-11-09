@@ -37,17 +37,15 @@ class RetrieveController < ApplicationController
     end
     Rails.logger.info 'Parsing %{urls_size} URLs' %{urls_size:news_urls_page_list.map{|_,list| list.size}.inject{|sum,x| sum + x}}
 
-    #news_url = "https://www.meneame.net/story/estados-golfo-planean-respuesta-militar-siria-ante-aumento-rusa"
-    #::ProcessNewsJob.new(news_url).perform
-    #exit(0)
-
     # Parse and process each news in news_list to be stored in database
     news_urls_page_list.each do |page_index, news_urls_list|
       Rails.logger.info 'Processing page with index #%{index}' % {index:page_index}
       news_urls_list.each do |news_url|
-        news = News.find_by_url_internal(news_url)
-        if news.nil? || news.comments_count != news.comments.includes(:news_comments).count
-          Rails.logger.info 'Parsing URL -> %{index}::%{url}' % {index:page_index, url:news_url}
+        if News.exists?(:url_internal => news_url)
+          # TODO Use the id from the news_item to avoid a query (implies we need to get the item object instead)
+          Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(News.find_by(:url_internal => news_url).id))
+        else
+          Rails.logger.info 'Parsing URL -> %{index}::%{url}' % {index: page_index, url: news_url}
           Delayed::Job.enqueue(NewsProcessor::NewNewsJob.new(news_url))
         end
       end
@@ -55,19 +53,6 @@ class RetrieveController < ApplicationController
   end
 
   def news
-    n = News.find(2483835)
-    puts n.closed?
-    exit(0)
-
-    Author.find_or_update_by_name('John_Doe')
-    author_old_name = "plop"
-    author_new_name = "plopp"
-    #c = Comment.where("body LIKE ?", author_old_name)
-    Comment.where("body LIKE ?", "%" + author_old_name + "%").update_all("body = REPLACE(body, '%{old}', '%{new}')" % {old:author_old_name, new:author_new_name})
-    #SET Value = REPLACE(Value, '123', '')
-    #puts c
-    exit(0)
-
     id = params[:id].to_i
 
     if News.exists?(id)
@@ -81,7 +66,6 @@ class RetrieveController < ApplicationController
   end
 
   def comment
-
     id = params[:id].to_i
 
     comment = Comment.find_or_initialize_by(id: id) do |c|

@@ -14,7 +14,11 @@ module NewsProcessor
 
     def perform
       news_item = Wagg.news(news_url)
-      ### Retrieve or create news with provided data
+
+      # TODO If a news is found in this job... switch it to an udpate job
+      #news = News.find_by(:id => news_item.id)
+
+      # Retrieve or create news with provided data
       news = News.find_or_initialize_by(id: news_item.id) do |n|
         author = Author.find_or_update_by_name(news_item.author['name'])
         n.poster_id = author.id
@@ -31,7 +35,7 @@ module NewsProcessor
         end
       end
 
-      ### Add metadata if available
+      # News' metadata if available
       # Wagg.News object has a more accurate knowledge on retrieval time
       unless news_item.open?
         news.clicks = news_item.clicks
@@ -45,20 +49,22 @@ module NewsProcessor
       news.save
 
       # Comments retrieval ONLY if available
+      # TODO Switch to update comment job if comment is found
       if news_item.comments_available? && !news_item.comments.empty?
         news_item.comments.each do |_, news_comment|
           Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
         end
       end
 
-      ### News's votes retrieval if available
-      #TODO
-      #unless !news_parameters['with_votes'] || news_item.votes.nil? || news_item.votes.empty?
-      #  news_item.votes.each do |news_vote|
-      #    Delayed::Job.enqueue(::ProcessVoteJob.new(news_vote['author'], news_vote['timestamp'], news_vote['weight'], news, "News"))
-      #  end
-      #end
-
+      # News's votes retrieval if available
+      if news_item.votes_available?
+        news_item.votes.each do |news_vote|
+          vote_author = Author.find_or_update_by_name(news_vote.author)
+          unless Vote.exists?([vote_author.id, news.id, 'News'])
+            Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news, "News"))
+          end
+        end
+      end
     end
 
     def before(job)
