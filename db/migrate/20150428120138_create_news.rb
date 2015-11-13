@@ -4,6 +4,7 @@ class CreateNews < ActiveRecord::Migration
       t.text        :title
       t.text        :description
       t.string      :category, :limit => 191
+      t.string      :status, :limit => 191
       t.datetime    :timestamp_creation
       t.datetime    :timestamp_publication
       t.text        :url_internal

@@ -7,8 +7,5 @@ class CreateNewsTags < ActiveRecord::Migration
 
     add_foreign_key :news_tags, :news,    name: :news,    column:  :news_id
     add_foreign_key :news_tags, :tags,    name: :tag,     column:  :tag_id
-
-    add_index       :tags,      :news_id
-    add_index       :tags,      :tag_id
   end
 end

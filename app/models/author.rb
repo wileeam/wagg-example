@@ -7,7 +7,9 @@ class Author < ActiveRecord::Base
 
   module Scopes
     def find_or_update_by_name(name)
-      if !Author.exists?(:name => name)
+      author = Author.find_by(:name => name)
+
+      if author.nil?
         author_item = Wagg.author(name)
 
         if author_item.nil?
@@ -22,8 +24,6 @@ class Author < ActiveRecord::Base
         author.name = author_item.name
 
         author.save
-      else
-        author = Author.find_by(:name => name)
       end
 
       author

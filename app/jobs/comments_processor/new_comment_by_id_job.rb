@@ -8,7 +8,7 @@ module CommentsProcessor
     def enqueue(job)
       #job.delayed_reference_id   = comment_id
       #job.delayed_reference_type = 'comment'
-      job.priority = WaggExample::JOB_PRIORITY['comments']
+      job.priority = WaggExample::JOB_PRIORITY['comments'] + 5
       job.save!
     end
 

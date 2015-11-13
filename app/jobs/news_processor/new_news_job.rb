@@ -8,7 +8,7 @@ module NewsProcessor
     def enqueue(job)
       #job.delayed_reference_id   = news_id
       #job.delayed_reference_type = 'news'
-      job.priority = WaggExample::JOB_PRIORITY['news']
+      job.priority = WaggExample::JOB_PRIORITY['news'] + 5
       job.save!
     end
 
@@ -27,8 +27,11 @@ module NewsProcessor
         n.url_internal = news_item.urls['internal']
         n.url_external = news_item.urls['external']
         n.timestamp_creation = Time.at(news_item.timestamps['creation']).to_datetime
-        n.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
+        unless news_item.timestamps['publication'].nil?
+          n.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
+        end
         n.category = news_item.category
+        n.status = news_item.status
         news_item.tags.each do |t|
           tag = Tag.find_or_create_by(name: t)
           n.tags << tag
@@ -37,12 +40,14 @@ module NewsProcessor
 
       # News' metadata if available
       # Wagg.News object has a more accurate knowledge on retrieval time
-      unless news_item.open?
+      unless news_item.voting_open?
         news.clicks = news_item.clicks
         news.karma = news_item.karma
         news.votes_count_anonymous = news_item.votes_count['anonymous']
         news.votes_count_negative = news_item.votes_count['negative']
         news.votes_count_positive = news_item.votes_count['positive']
+      end
+      unless news_item.commenting_open?
         news.comments_count = news_item.comments_count
       end
 

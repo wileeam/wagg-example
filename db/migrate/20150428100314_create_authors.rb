@@ -7,9 +7,9 @@ class CreateAuthors < ActiveRecord::Migration
       t.timestamps null: false
     end
 
-    change_column(:authors, :id, :integer, null: false, unique: true)
+    change_column :authors, :id, :integer, null: false, unique: true
 
-    add_index(:authors, :id, unique: true)
-    add_index(:authors, :name)
+    add_index     :authors, :id, unique: true
+    add_index     :authors, :name
   end
 end

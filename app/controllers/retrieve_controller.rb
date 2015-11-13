@@ -28,12 +28,14 @@ class RetrieveController < ApplicationController
       #c.retrieval_delay['author'] = 2
     end
 
+    params.has_key?('status') ? news_type = params[:status] : news_type = 'published'
+
     news_urls_page_list = Hash.new
     #(init_index..end_index).each do |page_index|
     (end_index).downto(init_index) do |page_index|
       # Get a list of news urls from page index
       # TODO: Use interval computation buil-int feature from gem or add method in gem for single pages
-      news_urls_page_list[page_index] = Wagg.page(page_index)[page_index].news_urls
+      news_urls_page_list[page_index] = Wagg.page(news_type, :begin_interval => page_index)[page_index].news_urls
     end
     Rails.logger.info 'Parsing %{urls_size} URLs' %{urls_size:news_urls_page_list.map{|_,list| list.size}.inject{|sum,x| sum + x}}
 

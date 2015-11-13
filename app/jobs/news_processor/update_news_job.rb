@@ -8,7 +8,7 @@ module NewsProcessor
     def enqueue(job)
       #job.delayed_reference_id   = news_id
       #job.delayed_reference_type = 'news'
-      job.priority = WaggExample::JOB_PRIORITY['news'] + 5
+      job.priority = WaggExample::JOB_PRIORITY['news']
       job.save!
     end
 
@@ -28,8 +28,8 @@ module NewsProcessor
         news.title = news_item.title
         news.description = news_item.description
         news.category = news_item.category
-        # TODO Do compare the tags besides the size (the latter is a very light check only)
-        if news.tags.count != news_item.tags.size
+        news.status = news_item.status
+        if news.tags.count != news_item.tags.size || !(news.tags - news_item.tags).empty?
           news.tags.clear
           news_item.tags.each do |t|
             tag = Tag.find_or_create_by(name: t)

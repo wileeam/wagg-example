@@ -65,6 +65,8 @@ ActiveRecord::Schema.define(version: 20151017181517) do
   create_table "news", force: :cascade do |t|
     t.text     "title",                 limit: 65535
     t.text     "description",           limit: 65535
+    t.string   "category",              limit: 191
+    t.string   "status",                limit: 191
     t.datetime "timestamp_creation"
     t.datetime "timestamp_publication"
     t.text     "url_internal",          limit: 65535
@@ -76,7 +78,6 @@ ActiveRecord::Schema.define(version: 20151017181517) do
     t.integer  "clicks",                limit: 4
     t.integer  "comments_count",        limit: 4
     t.integer  "poster_id",             limit: 4
-    t.string   "category",              limit: 191
     t.datetime "created_at",                          null: false
     t.datetime "updated_at",                          null: false
   end
@@ -86,9 +87,9 @@ ActiveRecord::Schema.define(version: 20151017181517) do
   add_index "news", ["url_internal"], name: "index_news_on_url_internal", length: {"url_internal"=>191}, using: :btree
 
   create_table "news_comments", id: false, force: :cascade do |t|
-    t.integer "news_id",    limit: 4, default: 0, null: false
-    t.integer "comment_id", limit: 4, default: 0, null: false
-    t.integer "news_index", limit: 4, default: 0, null: false
+    t.integer "news_id",    limit: 4, null: false
+    t.integer "comment_id", limit: 4, null: false
+    t.integer "news_index", limit: 4, null: false
   end
 
   create_table "news_tags", id: false, force: :cascade do |t|
@@ -96,8 +97,8 @@ ActiveRecord::Schema.define(version: 20151017181517) do
     t.integer "tag_id",  limit: 4
   end
 
-  add_index "news_tags", ["news_id"], name: "index_news_tags_on_news_id", using: :btree
-  add_index "news_tags", ["tag_id"], name: "index_news_tags_on_tag_id", using: :btree
+  add_index "news_tags", ["news_id"], name: "news", using: :btree
+  add_index "news_tags", ["tag_id"], name: "tag", using: :btree
 
   create_table "tags", force: :cascade do |t|
     t.string   "name",       limit: 255, null: false
@@ -110,11 +111,11 @@ ActiveRecord::Schema.define(version: 20151017181517) do
   create_table "votes", id: false, force: :cascade do |t|
     t.float    "weight",       limit: 24
     t.datetime "timestamp"
-    t.integer  "votable_id",   limit: 4,   default: 0,  null: false
-    t.string   "votable_type", limit: 255, default: "", null: false
-    t.integer  "voter_id",     limit: 4,   default: 0,  null: false
-    t.datetime "created_at",                            null: false
-    t.datetime "updated_at",                            null: false
+    t.integer  "votable_id",   limit: 4,   null: false
+    t.string   "votable_type", limit: 255, null: false
+    t.integer  "voter_id",     limit: 4,   null: false
+    t.datetime "created_at",               null: false
+    t.datetime "updated_at",               null: false
   end
 
   add_foreign_key "comments", "authors", column: "commenter_id", name: "commenter"
