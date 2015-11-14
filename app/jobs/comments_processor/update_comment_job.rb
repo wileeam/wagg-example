@@ -13,7 +13,7 @@ module CommentsProcessor
     end
 
     def perform
-      comment = Comment.find(comment_item.id)
+      comment = Comment.find_by(:id => comment_item.id)
 
       if comment.nil?
         # TODO: Recover and create a new entry with this id for comment. Possible?

@@ -13,7 +13,7 @@ module NewsProcessor
     end
 
     def perform
-      news = News.find(news_id)
+      news = News.find_by(:id => news_id)
 
       if news.nil?
         # TODO: Recover and create a new entry with this id for news. Possible?
@@ -29,10 +29,10 @@ module NewsProcessor
         news.description = news_item.description
         news.category = news_item.category
         news.status = news_item.status
-        if news.tags.count != news_item.tags.size || !(news.tags - news_item.tags).empty?
+        if news.tags.count != news_item.tags.size || !(news.tags.pluck(:name) - news_item.tags).empty?
           news.tags.clear
           news_item.tags.each do |t|
-            tag = Tag.find_or_create_by(name: t)
+            tag = Tag.find_or_create_by(:name => t)
             news.tags << tag
           end
         end
@@ -56,7 +56,7 @@ module NewsProcessor
         # Check comments and ONLY update if needed
         if news_item.comments_available? && !news_item.comments.empty?
           news_item.comments.each do |_, news_comment|
-            comment = Comment.find(news_comment.id)
+            comment = Comment.find_by(:id => news_comment.id)
             if comment.nil?
               Delayed::Job.enqueue(CommentsProcessor::NewCommentByIdJob.new(news_comment.id))
             elsif !comment.complete?

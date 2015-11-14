@@ -56,7 +56,7 @@ class RetrieveController < ApplicationController
     id = params[:id].to_i
 
     if News.exists?(id)
-      news = News.find(id)
+      news = News.find_by(:id => id)
       #news_object = Wagg.news(news.url_internal,TRUE,TRUE)
       puts news.url_internal
     else
@@ -86,7 +86,7 @@ class RetrieveController < ApplicationController
         c.timestamp_edition = Time.at(comment_item.timestamps['edition']).to_datetime
       end
 
-      news = News.find(:url_internal => comment_item.news_url)
+      news = News.find_by(:url_internal => comment_item.news_url)
 
       c.save
       unless c.news_comments.exists?(:news => news, :news_index => comment_item.news_index)

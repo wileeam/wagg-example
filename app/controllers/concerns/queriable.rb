@@ -56,7 +56,7 @@ module Queriable
 
     # Completes the information about votes of comments
     def complete_comment_votes(comment_id)
-      comment = Comment.find(comment_id)
+      comment = Comment.find_by(:id => comment_id)
 
       if comment.vote_count.nil? && coment.votes.nil?
         comment_object = Wagg::Crawler.comment
