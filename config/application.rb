@@ -31,6 +31,8 @@ module WaggExample
   end
 
   # App constants
+  PAGE_BATCH_SIZE = 5
+
   JOB_QUEUE = Hash.new
   JOB_QUEUE['author'] = 'authors'
   JOB_QUEUE['news'] = 'news'

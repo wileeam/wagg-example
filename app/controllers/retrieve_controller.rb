@@ -13,14 +13,6 @@ class RetrieveController < ApplicationController
 
   def page_interval
 
-    init_index = params[:init_index].to_i
-    end_index = params[:end_index].to_i
-
-    # Boundary checks
-    if init_index < 0 || init_index > end_index
-      # Return error
-    end
-
     # Configuration parameters
     Wagg.configure do |c|
       c.retrieval_delay['news'] = 4
@@ -28,30 +20,36 @@ class RetrieveController < ApplicationController
       #c.retrieval_delay['author'] = 2
     end
 
+    init_index = params[:init_index].to_i
+    end_index = params[:end_index].to_i
     params.has_key?('status') ? news_type = params[:status] : news_type = 'published'
 
-    news_urls_page_list = Hash.new
-    #(init_index..end_index).each do |page_index|
-    (end_index).downto(init_index) do |page_index|
-      # Get a list of news urls from page index
-      # TODO: Use interval computation buil-int feature from gem or add method in gem for single pages
-      news_urls_page_list[page_index] = Wagg.page(news_type, :begin_interval => page_index)[page_index].news_urls
+    # Boundary checks
+    if init_index < 0 || init_index > end_index
+      # Return error
     end
-    Rails.logger.info 'Parsing %{urls_size} URLs' %{urls_size:news_urls_page_list.map{|_,list| list.size}.inject{|sum,x| sum + x}}
 
-    # Parse and process each news in news_list to be stored in database
-    news_urls_page_list.each do |page_index, news_urls_list|
-      Rails.logger.info 'Processing page with index #%{index}' % {index:page_index}
-      news_urls_list.each do |news_url|
-        if News.exists?(:url_internal => news_url)
-          # TODO Use the id from the news_item to avoid a query (implies we need to get the item object instead)
-          Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(News.find_by(:url_internal => news_url).id))
-        else
-          Rails.logger.info 'Parsing URL -> %{index}::%{url}' % {index: page_index, url: news_url}
-          Delayed::Job.enqueue(NewsProcessor::NewNewsJob.new(news_url))
+    index_counter = end_index - WaggExample::PAGE_BATCH_SIZE
+    while index_counter + WaggExample::PAGE_BATCH_SIZE >= init_index
+      pages_list = Wagg.page(news_type, :begin_interval => index_counter + 1, :end_interval => index_counter + WaggExample::PAGE_BATCH_SIZE)
+      # Parse and process each news in news_list to be stored in database
+      pages_list.each do |index, page|
+        Rails.logger.info 'Processing page with index #%{index}' % {index:index}
+        page.news_urls.each do |news_url|
+          if News.exists?(:url_internal => news_url)
+            Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: news_url}
+            # TODO Use the id from the news_item to avoid a query (implies we need to get the item object instead)
+            Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(News.find_by(:url_internal => news_url).id))
+          else
+            Rails.logger.info 'Parsing new URL -> %{index}::%{url}' % {index: index, url: news_url}
+            Delayed::Job.enqueue(NewsProcessor::NewNewsJob.new(news_url))
+          end
         end
       end
+
+      index_counter -= WaggExample::PAGE_BATCH_SIZE
     end
+
   end
 
   def news
