@@ -1,8 +1,8 @@
 class News < ActiveRecord::Base
 
-  belongs_to  :poster,        :foreign_key  => :poster_id#inverse_of: :authors
+  belongs_to  :poster,        :foreign_key  => :poster_id
 
-  has_many    :votes,         :as           => :votable#inverse_of: :news
+  has_many    :votes,         :as           => :votable
 
   has_many    :news_tags
   has_many    :tags,          :through      => :news_tags
@@ -63,12 +63,37 @@ class News < ActiveRecord::Base
   end
   
   module Scopes
-    def open
-      where(:timestamp_publication => 30.days.ago..Time.now)
+    def comments_closed
+      query = "(status = 'published' AND timestamp_publication <= ?)" +
+              " OR " +
+              "(status = 'queued' AND timestamp_creation <= ?)" +
+              " OR " +
+              "(status = 'discarded' AND timestamp_creation <= ?)"
+      where(query, 30.days.ago, 10.days.ago, 2.days.ago)
+    end
+
+    def votes_closed
+      query = "(status = 'published' AND timestamp_publication <= ?)" +
+          " OR " +
+          "((status = 'queued' OR status = 'discarded') AND timestamp_creation <= ?)"
+      min_time = 30.days.ago
+      where(query, min_time, min_time)
     end
 
     def closed
-      where.not(:timestamp_publication => 30.days.ago..Time.now)
+      query = "(status = 'published' AND timestamp_publication <= ?)" +
+            " OR " +
+            "((status = 'queued' OR status = 'discarded') AND timestamp_creation <= ?)"
+      min_time = 30.days.ago
+      where(query, min_time, min_time)
+    end
+
+    def open
+      query = "(status = 'published' AND timestamp_publication > ?)" +
+          " OR " +
+          "((status = 'queued' OR status = 'discarded') AND timestamp_creation > ?)"
+      min_time = 30.days.ago
+      where(query, min_time, min_time)
     end
 
     def published
@@ -84,7 +109,7 @@ class News < ActiveRecord::Base
     end
 
     def last(time)
-      where(:timestamp_publication => time.days.ago..Time.now)
+      where(:timestamp_creation => time.days.ago..Time.now)
     end
 
     def incomplete

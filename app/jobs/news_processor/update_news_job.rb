@@ -57,8 +57,9 @@ module NewsProcessor
         if news_item.comments_available? && !news_item.comments.empty?
           news_item.comments.each do |_, news_comment|
             comment = Comment.find_by(:id => news_comment.id)
+            # TODO Refactor the nil situation by using the comment from the news_item... less http requests
             if comment.nil?
-              Delayed::Job.enqueue(CommentsProcessor::NewCommentByIdJob.new(news_comment.id))
+              Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
             elsif !comment.complete?
               Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob.new(news_comment))
             end

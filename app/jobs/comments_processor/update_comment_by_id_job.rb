@@ -14,7 +14,7 @@ module CommentsProcessor
 
     def perform
       comment_item = Wagg.comment(comment_id)
-      Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob.new(comment_item))
+      CommentsProcessor::UpdateCommentJob.new(comment_item).perform
     end
 
     def before(job)
