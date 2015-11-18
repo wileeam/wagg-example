@@ -13,63 +13,67 @@ module NewsProcessor
     end
 
     def perform
-      news_item = Wagg.news(news_url)
+      news = News.find_by(:url_internal => news_url)
 
-      # TODO If a news is found in this job... switch it to an udpate job
-      #news = News.find_by(:id => news_item.id)
+      if !news.nil?
+        NewsProcessor::UpdateNewsJob.new(news.id).perform
+      else
+        news_item = Wagg.news(news_url)
 
-      # Retrieve or create news with provided data
-      news = News.find_or_initialize_by(id: news_item.id) do |n|
-        author = Author.find_or_update_by_name(news_item.author['name'])
-        n.poster_id = author.id
-        n.title = news_item.title
-        n.description = news_item.description
-        n.url_internal = news_item.urls['internal']
-        n.url_external = news_item.urls['external']
-        n.timestamp_creation = Time.at(news_item.timestamps['creation']).to_datetime
-        unless news_item.timestamps['publication'].nil?
-          n.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
+        # Retrieve or create news with provided data
+        news = News.find_or_initialize_by(:id => news_item.id) do |n|
+          author = Author.find_or_update_by_name(news_item.author['name'])
+          n.poster_id = author.id
+          n.title = news_item.title
+          n.description = news_item.description
+          n.url_internal = news_item.urls['internal']
+          n.url_external = news_item.urls['external']
+          n.timestamp_creation = Time.at(news_item.timestamps['creation']).to_datetime
+          unless news_item.timestamps['publication'].nil?
+            n.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
+          end
+          n.category = news_item.category
+          n.status = news_item.status
+          news_item.tags.each do |t|
+            tag = Tag.find_or_create_by(:name => t)
+            n.tags << tag
+          end
         end
-        n.category = news_item.category
-        n.status = news_item.status
-        news_item.tags.each do |t|
-          tag = Tag.find_or_create_by(name: t)
-          n.tags << tag
+
+        # News' metadata if available
+        # Wagg.News object has a more accurate knowledge on retrieval time
+        unless news_item.voting_open?
+          news.clicks = news_item.clicks
+          news.karma = news_item.karma
+          news.votes_count_anonymous = news_item.votes_count['anonymous']
+          news.votes_count_negative = news_item.votes_count['negative']
+          news.votes_count_positive = news_item.votes_count['positive']
         end
-      end
-
-      # News' metadata if available
-      # Wagg.News object has a more accurate knowledge on retrieval time
-      unless news_item.voting_open?
-        news.clicks = news_item.clicks
-        news.karma = news_item.karma
-        news.votes_count_anonymous = news_item.votes_count['anonymous']
-        news.votes_count_negative = news_item.votes_count['negative']
-        news.votes_count_positive = news_item.votes_count['positive']
-      end
-      unless news_item.commenting_open?
-        news.comments_count = news_item.comments_count
-      end
-
-      news.save
-
-      # Comments retrieval ONLY if available
-      # TODO Switch to update comment job if comment is found
-      if news_item.comments_available? && !news_item.comments.empty?
-        news_item.comments.each do |_, news_comment|
-          Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
+        unless news_item.commenting_open?
+          news.comments_count = news_item.comments_count
         end
-      end
 
-      # News's votes retrieval if available
-      if news_item.votes_available?
-        news_item.votes.each do |news_vote|
-          vote_author = Author.find_or_update_by_name(news_vote.author)
-          unless Vote.exists?([vote_author.id, news.id, 'News'])
-            Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news, "News"))
+        news.save
+
+        # Comments retrieval ONLY if available
+        # TODO Switch to update comment job if comment is found
+        if news_item.comments_available? && !news_item.comments.empty?
+          news_item.comments.each do |_, news_comment|
+            Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
+          end
+        end
+
+        # News's votes retrieval if available
+        if news_item.votes_available?
+          news_item.votes.each do |news_vote|
+            vote_author = Author.find_or_update_by_name(news_vote.author)
+            unless Vote.exists?([vote_author.id, news.id, 'News'])
+              Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news, "News"))
+            end
           end
         end
       end
+
     end
 
     def before(job)
