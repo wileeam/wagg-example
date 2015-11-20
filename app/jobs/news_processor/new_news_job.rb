@@ -8,7 +8,7 @@ module NewsProcessor
     def enqueue(job)
       #job.delayed_reference_id   = news_id
       #job.delayed_reference_type = 'news'
-      job.priority = WaggExample::JOB_PRIORITY['news'] + 5
+      job.priority = WaggExample::JOB_PRIORITY['news']
       job.save!
     end
 
@@ -59,7 +59,12 @@ module NewsProcessor
         # TODO Switch to update comment job if comment is found
         if news_item.comments_available? && !news_item.comments.empty?
           news_item.comments.each do |_, news_comment|
-            Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
+            comment = Comment.find_by(:id => news_comment.id)
+            if comment.nil?
+              Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
+            elsif !comment.complete?
+              Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob.new(news_comment))
+            end
           end
         end
 

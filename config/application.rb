@@ -47,7 +47,7 @@ module WaggExample
 
 
   JOB_PRIORITY = Hash.new
-  JOB_PRIORITY['author'] = 1
+  JOB_PRIORITY['author'] = 2
   JOB_PRIORITY['news'] = 10
   JOB_PRIORITY['comment'] = 9
   JOB_PRIORITY['vote'] = 5

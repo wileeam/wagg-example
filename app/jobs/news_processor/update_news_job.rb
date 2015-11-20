@@ -49,6 +49,7 @@ module NewsProcessor
         news.save
 
         # Check the name of the author (if it changed, the check is just a query)
+        # TODO What if the author doesnt exist (this is impossible unless there is inconsistent data (eg kmkm user))
         news_author = Author.find_by(:id => news_item.author['id'])
         news_author.name = news_item.author['name']
         news_author.save
@@ -57,7 +58,6 @@ module NewsProcessor
         if news_item.comments_available? && !news_item.comments.empty?
           news_item.comments.each do |_, news_comment|
             comment = Comment.find_by(:id => news_comment.id)
-            # TODO Refactor the nil situation by using the comment from the news_item... less http requests
             if comment.nil?
               Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
             elsif !comment.complete?

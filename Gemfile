@@ -4,7 +4,6 @@ source 'https://rubygems.org'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '>= 4.2.5'
 # Use MySQL as the database for Active Record
-#gem 'mysql2', '~> 0.3.20'
 gem 'mysql2'
 # Use SCSS for stylesheets
 gem 'sass-rails', '~> 5.0'
@@ -17,11 +16,12 @@ gem 'coffee-rails', '~> 4.1.0'
 # Use DelayedJob for background tasks
 gem 'delayed_job_active_record', '>= 4.1.0'
 gem 'delayed-web'
+# Use Daemons to daemonize the DelayedJob workers
 gem 'daemons'
-
 # Some helper for non-sense deadlocks
 gem 'transaction_retry'
-
+# Use Whenever to create custom schedules for background scripts
+gem 'whenever'
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
