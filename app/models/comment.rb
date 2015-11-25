@@ -1,12 +1,12 @@
 class Comment < ActiveRecord::Base
-  belongs_to  :commenter, foreign_key: :commenter_id
+  belongs_to  :commenter,   :foreign_key  => :commenter_id, :class_name => Author
 
-  has_many  :votes,         :as      => :votable
+  has_many  :votes,         :as           => :votable
 
   has_many  :news_comments
-  has_many  :news,        :through => :news_comments
+  has_many  :news,          :through      => :news_comments
 
-  validates_uniqueness_of     :id
+  validates_uniqueness_of   :id
 
   def closed?
     self.timestamp_creation <= 30.days.ago
@@ -18,11 +18,15 @@ class Comment < ActiveRecord::Base
 
   # TODO Find a better way to assess this (we consider downvoted comments and those from deleted users nil too here)
   def complete?
-    !self.karma.nil?
+    !self.incomplete?
   end
 
   def incomplete?
-    !self.complete?
+    self.commenter.disabled? || self.karma.nil?
+  end
+
+  def commenter_disabled?
+    self.commenter.disabled?
   end
 
   def votes_available?
@@ -47,7 +51,7 @@ class Comment < ActiveRecord::Base
     end
 
     def incomplete
-      where(:karma => nil)
+      where(:karma => nil, :vote_count => nil)
     end
   end
   extend Scopes

@@ -36,7 +36,7 @@ class UpdateController < ApplicationController
   end
 
   def comments
-    comments_list = Comment.incomplete.order(:timestamp_creation => ASC)
+    comments_list = Comment.incomplete
     comments_list.each do |comment|
       Rails.logger.info 'Completing meta-data for comment -> %{comment}' % {comment:comment.id}
       Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob.new(comment.id))

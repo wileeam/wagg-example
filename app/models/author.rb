@@ -5,7 +5,17 @@ class Author < ActiveRecord::Base
 
   validates_uniqueness_of :id,        :scope => [:name]
 
+  def disabled?
+    match = self.name.match(/^--(?<id>\d+)--$/)
+    # There is no need to compare the id with the matched one
+    !match.nil? && self.id == match["id"].to_i
+  end
+
   module Scopes
+    def disabled
+      where('name REGEXP "^--[[:digit:]]+--$"')
+    end
+
     def find_or_update_by_name(name)
       author = Author.find_by(:name => name)
 

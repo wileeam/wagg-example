@@ -1,6 +1,6 @@
 class News < ActiveRecord::Base
 
-  belongs_to  :poster,        :foreign_key  => :poster_id
+  belongs_to  :poster,        :foreign_key  => :poster_id, :class_name => Author
 
   has_many    :votes,         :as           => :votable
 
@@ -22,7 +22,7 @@ class News < ActiveRecord::Base
 
   def complete?
     # TODO include data about comments to return true...
-    !self.karma.nil?
+    !self.comments_count.nil? && self.comments_count == self.comments.count
   end
 
   def incomplete?
