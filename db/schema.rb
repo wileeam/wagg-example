@@ -111,6 +111,7 @@ ActiveRecord::Schema.define(version: 20151017181517) do
   create_table "votes", id: false, force: :cascade do |t|
     t.float    "weight",       limit: 24
     t.datetime "timestamp"
+    t.integer  "rate",         limit: 4
     t.integer  "votable_id",   limit: 4,   null: false
     t.string   "votable_type", limit: 255, null: false
     t.integer  "voter_id",     limit: 4,   null: false

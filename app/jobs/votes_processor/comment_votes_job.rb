@@ -19,7 +19,8 @@ module VotesProcessor
           vote_author = comment_vote_item.author
           vote_timestamp = comment_vote_item.timestamp
           vote_weight = comment_vote_item.weight
-          Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author, vote_timestamp, vote_weight, comment, "Comment"))
+          vote_rate = comment_vote_item.rate
+          Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author, vote_timestamp, vote_weight, vote_rate, comment, "Comment"))
         end
       else
         Rails.logger.error 'Inconsistent votes for comment -> %{id}' % {id:comment.id}

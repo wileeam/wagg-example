@@ -69,7 +69,7 @@ class RetrieveController < ApplicationController
     id = params[:id].to_i
 
     comment = Comment.find_or_initialize_by(id: id) do |c|
-      comment_item = Wagg.comment(id, FALSE)
+      comment_item = Wagg.comment(id)
       comment_author_item = Wagg.author(comment_item.author)
       comment_author = Author.find_or_initialize_by(id: comment_author_item.id) do |a|
         a.signup = Time.at(comment_author_item.creation).to_datetime

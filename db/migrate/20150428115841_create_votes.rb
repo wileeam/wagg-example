@@ -3,6 +3,7 @@ class CreateVotes < ActiveRecord::Migration
     create_table :votes, :id => false do |t|
       t.float       :weight
       t.datetime    :timestamp
+      t.integer     :rate
 
       t.references  :votable, polymorphic: true
       t.references  :voter

@@ -19,7 +19,7 @@ module NewsProcessor
         # TODO: Recover and create a new entry with this id for news. Possible?
         error = "Couldn't find News record with id='%{id}'" %{id: news_id}
         raise ActiveRecord::RecordNotFound, error
-      elsif news.closed?
+      else
         # TODO Maybe checking the 'updated_at' field can minimize unnecessary parsing
         # Retrieve the news from the site
         news_item = Wagg.news(news.url_internal)
@@ -39,12 +39,16 @@ module NewsProcessor
 
         news.url_external = news_item.urls['external']
 
-        news.clicks = news_item.clicks
-        news.karma = news_item.karma
-        news.votes_count_anonymous = news_item.votes_count['anonymous']
-        news.votes_count_negative = news_item.votes_count['negative']
-        news.votes_count_positive = news_item.votes_count['positive']
-        news.comments_count = news_item.comments_count
+        unless news_item.voting_open?
+          news.clicks = news_item.clicks
+          news.karma = news_item.karma
+          news.votes_count_anonymous = news_item.votes_count['anonymous']
+          news.votes_count_negative = news_item.votes_count['negative']
+          news.votes_count_positive = news_item.votes_count['positive']
+        end
+        unless news_item.commenting_open?
+          news.comments_count = news_item.comments_count
+        end
 
         news.save
 
@@ -55,7 +59,7 @@ module NewsProcessor
         news_author.save
 
         # Check comments and ONLY update if needed
-        if news_item.comments_available? && !news_item.comments.empty?
+        if news_item.commenting_closed? && !news_item.comments.empty?
           news_item.comments.each do |_, news_comment|
             comment = Comment.find_by(:id => news_comment.id)
             if comment.nil?

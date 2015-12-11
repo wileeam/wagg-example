@@ -56,5 +56,4 @@ class Comment < ActiveRecord::Base
   end
   extend Scopes
 
-
 end

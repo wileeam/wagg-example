@@ -57,7 +57,7 @@ module NewsProcessor
 
         # Comments retrieval ONLY if available
         # TODO Switch to update comment job if comment is found
-        if news_item.comments_available? && !news_item.comments.empty?
+        if news_item.commenting_closed? && !news_item.comments.empty?
           news_item.comments.each do |_, news_comment|
             comment = Comment.find_by(:id => news_comment.id)
             if comment.nil?

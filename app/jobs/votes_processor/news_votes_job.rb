@@ -19,7 +19,8 @@ module VotesProcessor
           vote_author = news_vote_item.author
           vote_timestamp = news_vote_item.timestamp
           vote_weight = news_vote_item.weight
-          Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author, vote_timestamp, vote_weight, news, "News"))
+          vote_rate = news_vote_item.rate
+          Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author, vote_timestamp, vote_weight, vote_rate, news, "News"))
         end
       else
         Rails.logger.error 'Inconsistent votes for news -> %{url}' % {url:news.url_internal}
