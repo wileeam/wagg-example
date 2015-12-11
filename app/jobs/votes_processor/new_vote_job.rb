@@ -23,10 +23,10 @@ module VotesProcessor
         vote = Vote.new(
             voter_id: author.id,
             timestamp: Time.at(vote_timestamp).to_datetime,
-            weight: vote_weight
+            weight: vote_weight,
+            rate: vote_rate
         )
         vote.votable = vote_votable
-        vote.rate = vote_rate
 
         unless Vote.exists?([author.id, vote_votable.id, vote_votable_type])
           vote.save

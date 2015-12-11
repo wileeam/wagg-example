@@ -75,7 +75,7 @@ module NewsProcessor
           news_item.votes.each do |news_vote|
             vote_author = Author.find_or_update_by_name(news_vote.author)
             unless Vote.exists?([vote_author.id, news.id, 'News'])
-              Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news, "News"))
+              Delayed::Job.enqueue(VotesProcessor::NewVoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news_vote.rate, news, "News"))
             end
           end
         end
