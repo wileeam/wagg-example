@@ -18,5 +18,6 @@ class CreateVotes < ActiveRecord::Migration
     #add_index(:votes, :votable_type, length: 191)
     #add_index(:votes, :votable_id)
     #add_index(:votes, :voter_id)
+    add_index     :vote, [:voter_id, :votable_type, length: 191]
   end
 end

@@ -27,17 +27,23 @@ class Updater
               news = News.find_by(:url_internal => n_url)
               if news.nil?
                 Rails.logger.info 'Parsing new URL -> %{index}::%{url}' % {index: index, url: n_url}
+                # TODO Look for object id in delayed_jobs table... if there, don't insert...
+                #Delayed::Job.
                 Delayed::Job.enqueue(NewsProcessor::NewNewsJob.new(n_url))
               else
-                if n.commenting_closed? || n.voting_closed?
-                  Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: n_url}
-                  Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(news.id))
-                else
-                  if news.votes.count != n.votes_count['positive'] + n.votes_count['negative']
+                #if n.commenting_closed? || n.voting_closed?
+                #  Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: n_url}
+                #  # TODO Look for object id in delayed_jobs table... if there, don't insert...
+                #  Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(news.id))
+                #else
+                  # If news is open, we only care for negative votes as those we need to infer data within 24 hours
+                  if news.votes.where('rate < 0').count != n.votes_count['negative']
+                  #if news.votes.count != n.votes_count['positive'] + n.votes_count['negative']
                     Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: n_url}
+                    # TODO Look for object id in delayed_jobs table... if there, don't insert...
                     Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(news.id))
                   end
-                end
+                #end
               end
             end
           end
