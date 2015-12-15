@@ -118,6 +118,7 @@ GEM
     nokogiri (1.6.7)
       mini_portile2 (~> 2.0.0.rc2)
     ntlm-http (0.1.1)
+    psych (2.0.15)
     rack (1.6.4)
     rack-pjax (0.8.0)
       nokogiri (~> 1.5)
@@ -224,6 +225,7 @@ DEPENDENCIES
   jbuilder (~> 2.0)
   jquery-rails
   mysql2
+  psych (= 2.0.15)
   rails (>= 4.2.5)
   rails_admin
   sass-rails (~> 5.0)
