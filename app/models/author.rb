@@ -1,7 +1,7 @@
 class Author < ActiveRecord::Base
-  has_many                :votes
-  has_many                :comments
-  has_many                :news
+  has_many                :votes,     :foreign_key => :voter_id
+  has_many                :comments,  :foreign_key => :commenter_id
+  has_many                :news,      :foreign_key => :poster_id
 
   validates_uniqueness_of :id,        :scope => [:name]
 
