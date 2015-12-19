@@ -15,9 +15,9 @@ class CreateVotes < ActiveRecord::Migration
 
     execute "ALTER TABLE votes ADD PRIMARY KEY (voter_id, votable_id, votable_type(191));"
 
-    #add_index(:votes, :votable_type, length: 191)
-    #add_index(:votes, :votable_id)
-    #add_index(:votes, :voter_id)
-    add_index     :vote, [:voter_id, :votable_type, length: 191]
+    add_index     :votes, :votable_id
+    add_index     :votes, :voter_id
+    add_index     :votes, [:votable_id, :votable_type]
+    add_index     :votes, [:voter_id, :votable_id, :votable_type]
   end
 end

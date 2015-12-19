@@ -1,9 +1,10 @@
 class Author < ActiveRecord::Base
-  has_many                :votes,     :foreign_key => :voter_id
-  has_many                :comments,  :foreign_key => :commenter_id
-  has_many                :news,      :foreign_key => :poster_id
+  has_many                :votes,       :foreign_key => :voter_id
+  has_many                :comments,    :foreign_key => :commenter_id
+  has_many                :news,        :foreign_key => :poster_id
+  has_many                :affinities,  :foreign_key => [:minor_id, :major_id]
 
-  validates_uniqueness_of :id,        :scope => [:name]
+  validates_uniqueness_of :id,          :scope => [:name]
 
   def disabled?
     match = self.name.match(/^--(?<id>\d+)--$/)

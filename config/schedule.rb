@@ -21,3 +21,10 @@
 every 3.hours do
   runner "Updater.all"
 end
+
+
+#TODO
+# At 4am, 4pm, 8pm, 12am, 2.30am
+# run negative votes (if news exists do NOT consider comments in case news is closed)
+# At 10am
+# run update closed news (go for news itself and comments, do NOT consider votes)

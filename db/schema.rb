@@ -11,7 +11,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151017181517) do
+ActiveRecord::Schema.define(version: 20151218030054) do
+
+  create_table "affinities", id: false, force: :cascade do |t|
+    t.integer  "minor_id",           limit: 4,              null: false
+    t.integer  "major_id",           limit: 4,              null: false
+    t.integer  "closeness",          limit: 4,  default: 0
+    t.float    "weighted_closeness", limit: 24
+    t.datetime "created_at",                                null: false
+    t.datetime "updated_at",                                null: false
+  end
+
+  add_index "affinities", ["major_id"], name: "index_affinities_on_major_id", using: :btree
+  add_index "affinities", ["minor_id"], name: "index_affinities_on_minor_id", using: :btree
 
   create_table "authors", force: :cascade do |t|
     t.string   "name",       limit: 191
@@ -119,6 +131,13 @@ ActiveRecord::Schema.define(version: 20151017181517) do
     t.datetime "updated_at",               null: false
   end
 
+  add_index "votes", ["votable_id", "votable_type"], name: "index_votes_on_votable_id_and_votable_type", using: :btree
+  add_index "votes", ["votable_id"], name: "index_votes_on_votable_id", using: :btree
+  add_index "votes", ["voter_id", "votable_id", "votable_type"], name: "index_votes_on_voter_id_and_votable_id_and_votable_type", using: :btree
+  add_index "votes", ["voter_id"], name: "index_votes_on_voter_id", using: :btree
+
+  add_foreign_key "affinities", "authors", column: "major_id", name: "major"
+  add_foreign_key "affinities", "authors", column: "minor_id", name: "minor"
   add_foreign_key "comments", "authors", column: "commenter_id", name: "commenter"
   add_foreign_key "news", "authors", column: "poster_id", name: "poster"
   add_foreign_key "news_tags", "news", name: "news"
