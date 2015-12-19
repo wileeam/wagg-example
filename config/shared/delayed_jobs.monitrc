@@ -15,73 +15,71 @@
 #
 #   monit -g delayed_job restart
 
-1. CHECK PROCESS <unique name> <PIDFILE <path> | MATCHING <regex>>
-
 check process dj_news_0
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.0.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 0 --queue=news start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 0 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.0.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 0 --queue=news start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 0 --queue=news stop'"
   group dj_news
 
 check process dj_news_1
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.1.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 1 --queue=news start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 1 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.1.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 1 --queue=news start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 1 --queue=news stop'"
   group dj_news
 
 check process dj_news_2
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.2.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 2 --queue=news start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 2 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.2.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 2 --queue=news start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 2 --queue=news stop'"
   group dj_news
 
 
 check process dj_comments_5
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.5.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 5 --queue=comments start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 5 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.5.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 5 --queue=comments start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 5 --queue=comments stop'"
   group dj_comments
 
 check process dj_comments_6
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.6.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 6 --queue=comments start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 6 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.6.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 6 --queue=comments start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 6 --queue=comments stop'"
   group dj_comments
 
 check process dj_comments_7
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.7.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 7 --queue=comments start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 7 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.7.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 7 --queue=comments start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 7 --queue=comments stop'"
   group dj_comments
 
 
 check process dj_votes_10
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.10.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 10 --queue=votes start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 10 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.10.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 10 --queue=votes start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 10 --queue=votes stop'"
   group dj_votes
 
 check process dj_votes_11
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.11.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 11 --queue=votes start'" as uid www-data and gid www-data
-  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 11 stop'"
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.11.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 11 --queue=votes start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 11 --queue=votes stop'"
   group dj_votes
 
 
 check process dj_any_15
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.15.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 15 start'" as uid www-data and gid www-data
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.15.pid
+  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 15 start'"
   stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 15 stop'"
   group dj_any
 
 check process dj_any_16
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.16.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 16 start'" as uid www-data and gid www-data
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.16.pid
+  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 16 start'"
   stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 16 stop'"
   group dj_any
 
 check process dj_any_17
-  with pidfile /var/www/apps/wagg/tmp/pids/delayed_job.17.pid
-  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 17 start'" as uid www-data and gid www-data
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.17.pid
+  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 17 start'"
   stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 17 stop'"
   group dj_any
