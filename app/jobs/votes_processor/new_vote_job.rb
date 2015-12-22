@@ -23,6 +23,7 @@ module VotesProcessor
         vote = Vote.new(
             voter_id: author.id,
             timestamp: Time.at(vote_timestamp).to_datetime,
+            #TODO: If vote_type=NEWS and retrieval_timestamp not within 24 hours and weight < 0 then weight is not valid
             weight: vote_weight,
             rate: vote_rate
         )

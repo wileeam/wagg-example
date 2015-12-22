@@ -9,7 +9,7 @@ class Comment < ActiveRecord::Base
   validates_uniqueness_of   :id
 
   def closed?
-    self.timestamp_creation <= 30.days.ago
+    self.votes_closed?
   end
 
   def open?
@@ -25,14 +25,24 @@ class Comment < ActiveRecord::Base
     self.commenter.disabled? || self.karma.nil?
   end
 
+  def votes_closed?
+    self.timestamp_creation <= 30.days.ago
+  end
+
+  def votes_open?
+    !self.votes_closed?
+  end
+
   def commenter_disabled?
     self.commenter.disabled?
   end
 
+  #Deprecate
   def votes_available?
     self.vote_count == 0 || self.votes.count > 0
   end
 
+  #Deprecate
   def votes_consistent?
     self.votes_available? && self.votes.count == self.vote_count
   end

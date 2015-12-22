@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: 6040d56109436791b012445d93c8c110c39422ac
+  revision: 5de6d7083c9eae2634f9d44cbf08ab3fe98820a7
   specs:
-    wagg (0.9.4.alpha)
+    wagg (0.9.5.beta)
       mechanize
 
 GEM
@@ -221,6 +221,7 @@ DEPENDENCIES
   daemons
   delayed-web
   delayed_job_active_record (>= 4.1.0)
+  haml
   jbuilder (~> 2.0)
   jquery-rails
   mysql2

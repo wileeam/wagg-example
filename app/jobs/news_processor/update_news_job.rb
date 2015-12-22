@@ -55,6 +55,7 @@ module NewsProcessor
         # Check the name of the author (if it changed, the check is just a query)
         # TODO What if the author doesnt exist (this is impossible unless there is inconsistent data (eg kmkm user))
         news_author = Author.find_by(:id => news_item.author['id'])
+        #news_author = Author.find_or_update_by_name(news_item.author['name'])
         news_author.name = news_item.author['name']
         news_author.save
 
