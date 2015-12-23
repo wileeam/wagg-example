@@ -24,6 +24,8 @@ gem 'daemons'
 gem 'transaction_retry'
 # Use Whenever to create custom schedules for background scripts
 gem 'whenever'
+# Use Figaro to use configuration ENV variables
+gem 'figaro'
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
