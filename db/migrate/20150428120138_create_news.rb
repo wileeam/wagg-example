@@ -18,6 +18,8 @@ class CreateNews < ActiveRecord::Migration
 
       t.references  :poster
 
+      t.boolean     :complete
+
       t.timestamps null: false
     end
 

@@ -4,15 +4,8 @@ class Updater
 
     def all
 
-      # Configuration parameters
-      Wagg.configure do |c|
-        c.retrieval_delay['news'] = 4
-        c.retrieval_delay['comment'] = 3
-        #c.retrieval_delay['author'] = 2
-      end
-
       init_index = 1
-      end_index = 50
+      end_index = 200
       status = ['published', 'discarded', 'queued']
 
       status.each do |news_type|
@@ -28,33 +21,21 @@ class Updater
               if news.nil?
                 Rails.logger.info 'Parsing new URL -> %{index}::%{url}' % {index: index, url: n_url}
                 # TODO Look for object id in delayed_jobs table... if there, don't insert...
-                #Delayed::Job.
-                Delayed::Job.enqueue(NewsProcessor::NewNewsJob.new(n_url))
-              else
-                #if n.commenting_closed? || n.voting_closed?
-                #  Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: n_url}
-                #  # TODO Look for object id in delayed_jobs table... if there, don't insert...
-                #  Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(news.id))
-                #else
-                  # If news is open, we only care for negative votes as those we need to infer data within 24 hours
-                  if news.votes.where('rate < 0').count != n.votes_count['negative']
-                  #if news.votes.count != n.votes_count['positive'] + n.votes_count['negative']
-                    Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: n_url}
-                    # TODO Look for object id in delayed_jobs table... if there, don't insert...
-                    Delayed::Job.enqueue(NewsProcessor::UpdateNewsJob.new(news.id))
-                  end
-                #end
+                Delayed::Job.enqueue(NewsProcessor::NewsJob.new(n_url))
+              elsif news.votes.where('rate < 0').count != n.votes_count['negative']
+                # If news is open, we only care for negative votes as those we need to infer data within 24 hours
+                Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: n_url}
+                # TODO Look for object id in delayed_jobs table... if there, don't insert...
+                Delayed::Job.enqueue(NewsProcessor::NewsJob.new(n_url))
               end
             end
           end
-
-          index_counter -= WaggExample::PAGE_BATCH_SIZE
         end
       end
 
+      index_counter -= WaggExample::PAGE_BATCH_SIZE
     end
 
   end
-
 
 end

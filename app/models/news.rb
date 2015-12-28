@@ -21,12 +21,29 @@ class News < ActiveRecord::Base
   end
 
   def complete?
-    # TODO include data about comments to return true...
-    !self.comments_count.nil? && self.comments_count == self.comments.count
+    self.votes_complete? && self.comments_complete? && !self.karma.nil?
   end
 
   def incomplete?
     !self.complete?
+  end
+
+  def comments_complete?
+    if self.comments_closed? && self.comments.count == self.comments_count
+      sql = "select count(*) from votes, news_comments where news_comments.news_id=#{ActiveRecord::Base.sanitize(self.id)} and news_comments.comment_id=votes.votable_id group by votable_id"
+      results = ActiveRecord::Base.connection.execute(sql)
+      if results.present?
+        self.comments.pluck(:vote_count).sum == results.sum.sum
+      else
+        #TODO Ooops
+        FALSE
+      end
+    end
+
+  end
+
+  def comments_incomplete?
+    !self.comments_complete?
   end
 
   def comments_closed?
@@ -46,6 +63,14 @@ class News < ActiveRecord::Base
     !self.comments_closed?
   end
 
+  def votes_complete?
+    self.votes_closed? && self.votes.count == (self.votes_count_negative + self.votes_count_positive)
+  end
+
+  def votes_incomplete?
+    !self.votes_complete?
+  end
+
   def votes_closed?
     case self.status
       when 'published'
@@ -61,7 +86,8 @@ class News < ActiveRecord::Base
   def votes_open?
     !self.votes_closed?
   end
-  
+
+
   module Scopes
     def comments_closed
       query = "(status = 'published' AND timestamp_publication <= ?)" +
@@ -108,16 +134,40 @@ class News < ActiveRecord::Base
       where(:status => 'discarded')
     end
 
-    def last(time)
+    def latest(time)
       where(:timestamp_creation => time.days.ago..Time.now)
     end
 
-    def incomplete
-      where(:karma => nil)
+    def complete
+      where(:complete => TRUE)
     end
 
-    def missing_comments
-      where('comments_count != (SELECT count(*) FROM news_comments WHERE news_comments.news_id = news.id)')
+    def incomplete
+      where(:complete => FALSE)
+    end
+
+    def comments_complete
+      where('news.comments_count == (SELECT count(*) FROM news_comments WHERE news_comments.news_id = news.id)')
+    end
+
+    def comments_incomplete
+      where('news.comments_count != (SELECT count(*) FROM news_comments WHERE news_comments.news_id = news.id)')
+    end
+
+    def comments_votes_complete
+      joins(:news_comments, :comments).merge(Comment.votes_complete).distinct
+    end
+
+    def comments_votes_incomplete
+      joins(:news_comments, :comments).merge(Comment.votes_incomplete).distinct
+    end
+
+    def votes_complete
+      where('(news.votes_count_negative + news.votes_count_positive) == (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
+    end
+
+    def votes_incomplete
+      where('(news.votes_count_negative + news.votes_count_positive) != (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
     end
 
   end

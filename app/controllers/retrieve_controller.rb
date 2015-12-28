@@ -13,12 +13,17 @@ class RetrieveController < ApplicationController
 
   def page_interval
 
+    # TODO Put this into an initializer...
     # Configuration parameters
     Wagg.configure do |c|
+      #c.retrieval_credentials['username'] = 'wagg'
+      #c.retrieval_credentials['password'] = 'wagg2015'
+
       c.retrieval_delay['news'] = 4
       c.retrieval_delay['comment'] = 3
       #c.retrieval_delay['author'] = 2
     end
+
 
     init_index = params[:init_index].to_i
     end_index = params[:end_index].to_i

@@ -16,13 +16,12 @@ class Comment < ActiveRecord::Base
     !self.closed?
   end
 
-  # TODO Find a better way to assess this (we consider downvoted comments and those from deleted users nil too here)
   def complete?
-    !self.incomplete?
+    self.commenter.disabled? || self.votes_complete? && !self.karma.nil?
   end
 
   def incomplete?
-    self.commenter.disabled? || self.karma.nil?
+    !self.complete?
   end
 
   def votes_closed?
@@ -31,6 +30,14 @@ class Comment < ActiveRecord::Base
 
   def votes_open?
     !self.votes_closed?
+  end
+
+  def votes_complete?
+    self.votes_closed? && self.votes.count == self.vote_count
+  end
+
+  def votes_incomplete?
+    !self.votes_complete?
   end
 
   def commenter_disabled?
@@ -63,6 +70,15 @@ class Comment < ActiveRecord::Base
     def incomplete
       where(:karma => nil, :vote_count => nil)
     end
+
+    def votes_complete
+      where('comments.vote_count == (SELECT count(*) FROM votes WHERE votes.votable_id = comments.id and votes.votable_type="Comment")')
+    end
+
+    def votes_incomplete
+      where('comments.vote_count != (SELECT count(*) FROM votes WHERE votes.votable_id = comments.id and votes.votable_type="Comment")')
+    end
+
   end
   extend Scopes
 
