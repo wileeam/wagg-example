@@ -54,8 +54,14 @@ module CommentsProcessor
       if comment_item.votes_available? && !comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count
         comment_item.votes.each do |comment_vote|
           vote_author = Author.find_or_update_by_name(comment_vote.author)
-          unless Vote.exists?([vote_author.id, comment.id, 'Comment'])
+          # We overwrite the rate and weight of the vote if they changed due to a previous bug... sorry
+          vote = Vote.find([vote_author.id, comment.id, 'Comment'])
+          if vote.nil?
             Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, comment_vote.timestamp, comment_vote.weight, comment_vote.rate, comment.id, "Comment"))
+          else
+            vote.rate = comment_vote.rate
+            vote.weight = comment_vote.weight
+            vote.save
           end
         end
       end

@@ -37,17 +37,14 @@ class News < ActiveRecord::Base
   end
 
   def comments_complete?
-    if self.comments_closed? && self.comments.count == self.comments_count
-      sql = "select count(*) from votes, news_comments where news_comments.news_id=#{ActiveRecord::Base.sanitize(self.id)} and news_comments.comment_id=votes.votable_id group by votable_id"
-      results = ActiveRecord::Base.connection.execute(sql)
-      if results.present?
-        self.comments.pluck(:vote_count).sum == results.sum.sum
-      else
-        #TODO Ooops
-        FALSE
-      end
+    res = FALSE
+
+    if self.comments_closed? && self.comments.count == self.comments_count && self.comments_count > 0
+      sql = "SELECT `votes`.* FROM `votes`, `news_comments` WHERE `news_comments`.`news_id` = #{ActiveRecord::Base.sanitize(self.id)} AND `news_comments`.`comment_id` = `votes`.`votable_id`"
+      res = self.comments.sum(:vote_count) == Vote.find_by_sql(sql).count
     end
 
+    res
   end
 
   def comments_incomplete?

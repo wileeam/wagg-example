@@ -22,7 +22,7 @@ class Updater
                 Rails.logger.info 'Parsing new URL -> %{index}::%{url}' % {index: index, url: n_url}
                 # TODO Look for object id in delayed_jobs table... if there, don't insert...
                 Delayed::Job.enqueue(NewsProcessor::NewsJob.new(n_url))
-              elsif news.votes.where('rate < 0').count != n.votes_count['negative']
+              elsif news.votes_negative.count != n.votes_count['negative']
                 # If news is open, we only care for negative votes as those we need to infer data within 24 hours
                 Rails.logger.info 'Parsing update URL -> %{index}::%{url}' % {index: index, url: n_url}
                 # TODO Look for object id in delayed_jobs table... if there, don't insert...
