@@ -51,7 +51,7 @@ module CommentsProcessor
       end
 
       # Check comment' votes and update
-      if comment_item.votes_available?
+      if comment_item.votes_available? && !comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count
         comment_item.votes.each do |comment_vote|
           vote_author = Author.find_or_update_by_name(comment_vote.author)
           unless Vote.exists?([vote_author.id, comment.id, 'Comment'])

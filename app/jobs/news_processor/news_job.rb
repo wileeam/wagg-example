@@ -77,7 +77,8 @@ module NewsProcessor
       news.save
 
       # Votes retrieval if available
-      if news_item.votes_available?
+      #if news_item.votes_available? && (news_item.votes_count["positive"] != news.votes_positive.count || news_item.votes_count["negative"] != news.votes_negative.count)
+      if news_item.votes_available? && (news_item.votes_count["positive"] + news_item.votes_count["negative"] != news.votes.count)
         news_item.votes.each do |news_vote|
           vote_author = Author.find_or_update_by_name(news_vote.author)
           unless Vote.exists?([vote_author.id, news.id, 'News'])
@@ -87,7 +88,7 @@ module NewsProcessor
       end
 
       # Comments retrieval if available
-      if news_item.comments_available?
+      if news_item.comments_available? && news_item.comments_count != news.comments.count
         news_item.comments.each do |_, news_comment|
           if !Comment.exists?(news_comment.id) || Comment.find(news_comment.id).incomplete?
             Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_comment))

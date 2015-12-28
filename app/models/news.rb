@@ -12,6 +12,14 @@ class News < ActiveRecord::Base
 
   validates_uniqueness_of     :id
 
+  def votes_positive
+    self.votes.where('? >= 0', :rate)
+  end
+
+  def votes_negative
+    self.votes.where('? < 0', :rate)
+  end
+
   def closed?
     self.comments_closed? && self.votes_closed?
   end
