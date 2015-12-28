@@ -27,13 +27,10 @@ module VotesProcessor
             weight: vote_weight,
             rate: vote_rate
         )
-        vote.votable = News.find_by(:id => vote_votable_id)
+        vote.votable_id = vote_votable_id
+        vote.votable_type = vote_votable_type
 
-        unless Vote.exists?([author.id, vote_votable_id, vote_votable_type])
-          vote.save
-          # TODO Do I need this line if there is no saving afterwards?
-          vote.votable.votes << vote
-        end
+        vote.save unless Vote.exists?([author.id, vote_votable_id, vote_votable_type])
       end
     end
 
