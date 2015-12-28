@@ -30,10 +30,11 @@ class Updater
               end
             end
           end
+
+          # Decrement index counter
+          index_counter -= WaggExample::PAGE_BATCH_SIZE
         end
       end
-
-      index_counter -= WaggExample::PAGE_BATCH_SIZE
     end
 
   end
