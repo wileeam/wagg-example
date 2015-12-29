@@ -80,14 +80,8 @@ module NewsProcessor
       if news_item.votes_available? && (news_item.votes_count["positive"] != news.votes_positive.count || news_item.votes_count["negative"] != news.votes_negative.count)
         news_item.votes.each do |news_vote|
           vote_author = Author.find_or_update_by_name(news_vote.author)
-          # We overwrite the rate and weight of the vote if they changed due to a previous bug... sorry
-          vote = Vote.find([vote_author.id, news.id, 'News'])
-          if vote.nil?
+          unless Vote.exists?([vote_author.id, news.id, 'News'])
             Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news_vote.rate, news.id, "News"))
-          else
-            vote.rate = news_vote.rate
-            vote.weight = news_vote.weight
-            vote.save
           end
         end
       end
