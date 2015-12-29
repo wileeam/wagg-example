@@ -19,7 +19,7 @@ module NewsProcessor
 
       # TODO Maybe checking the 'updated_at' field can minimize unnecessary parsing
       # Retrieve the news from the site
-      news_item = Wagg.news(news.url_internal)
+      news_item = Wagg.news(news_url)
 
       if news.nil? # New news
         # Create news object (after checking that id doesn't really exist in database)
