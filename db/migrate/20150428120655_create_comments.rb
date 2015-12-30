@@ -9,6 +9,9 @@ class CreateComments < ActiveRecord::Migration
 
       t.references  :commenter
 
+      t.boolean     :complete
+      t.boolean     :faulty
+
       t.timestamps null: false
     end
 

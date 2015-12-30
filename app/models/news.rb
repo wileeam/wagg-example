@@ -36,19 +36,25 @@ class News < ActiveRecord::Base
     !self.complete?
   end
 
+  def faulty?
+    self.faulty
+  end
+
   def comments_complete?
-    res = FALSE
-
-    if self.comments_closed? && self.comments.count == self.comments_count && self.comments_count > 0
-      sql = "SELECT `votes`.* FROM `votes`, `news_comments` WHERE `news_comments`.`news_id` = #{ActiveRecord::Base.sanitize(self.id)} AND `news_comments`.`comment_id` = `votes`.`votable_id`"
-      res = self.comments.sum(:vote_count) == Vote.find_by_sql(sql).count
-    end
-
-    res
+    self.comments.count == self.comments_count && self.comments_count > 0
   end
 
   def comments_incomplete?
     !self.comments_complete?
+  end
+
+  def comments_votes_complete?
+    sql = "SELECT `votes`.* FROM `votes`, `news_comments` WHERE `news_comments`.`news_id` = #{ActiveRecord::Base.sanitize(self.id)} AND `news_comments`.`comment_id` = `votes`.`votable_id`"
+    self.comments.sum(:vote_count) == Vote.find_by_sql(sql).count
+  end
+
+  def comments_votes_incomplete?
+    !self.comments_votes_complete?
   end
 
   def comments_closed?
@@ -69,7 +75,7 @@ class News < ActiveRecord::Base
   end
 
   def votes_complete?
-    self.votes_closed? && self.votes.count == (self.votes_count_negative + self.votes_count_positive)
+    self.votes.count == (self.votes_count_negative + self.votes_count_positive)
   end
 
   def votes_incomplete?
@@ -91,7 +97,6 @@ class News < ActiveRecord::Base
   def votes_open?
     !self.votes_closed?
   end
-
 
   module Scopes
     def comments_closed
@@ -149,6 +154,10 @@ class News < ActiveRecord::Base
 
     def incomplete
       where(:complete => FALSE)
+    end
+
+    def faulty
+      where(:faulty => TRUE)
     end
 
     def comments_complete

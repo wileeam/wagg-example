@@ -19,7 +19,7 @@
 
 # Learn more: http://github.com/javan/whenever
 every 3.hours do
-  runner "Updater.all"
+  runner "Maintainer::Updater.all"
 end
 
 
