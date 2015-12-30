@@ -72,7 +72,7 @@ class Comment < ActiveRecord::Base
     end
 
     def votes_complete
-      where('comments.vote_count == (SELECT count(*) FROM votes WHERE votes.votable_id = comments.id and votes.votable_type="Comment")')
+      where('comments.vote_count = (SELECT count(*) FROM votes WHERE votes.votable_id = comments.id and votes.votable_type="Comment")')
     end
 
     def votes_incomplete

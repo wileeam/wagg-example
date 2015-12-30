@@ -15,8 +15,13 @@ module NewsProcessor
     def perform
       news = News.find_by(:url_internal => news_url)
 
-      # Note that Wagg.News object has a more accurate knowledge on retrieval time
+      # If we have marked the news as complete and/or faulty in database, we don't need to even check beyond
+      # TODO Could I use the 'complete?' method in combination or this one to include the 'complete' flag instead?
+      if !news.nil? && (news.complete) #|| news.faulty)
+        return
+      end
 
+      # Note that Wagg.News object has a more accurate knowledge on retrieval time
       # TODO Maybe checking the 'updated_at' field can minimize unnecessary parsing
       # Retrieve the news from the site
       news_item = Wagg.news(news_url)
@@ -77,7 +82,7 @@ module NewsProcessor
       news.save
 
       # Votes retrieval if available
-      if news_item.votes_available? && (news_item.votes_count["positive"] != news.votes_positive.count || news_item.votes_count["negative"] != news.votes_negative.count)
+      if news_item.votes_available? && ((news_item.votes_count["positive"] != news.votes_positive.count) || (news_item.votes_count["negative"] != news.votes_negative.count))
         news_item.votes.each do |news_vote|
           vote_author = Author.find_or_update_by_name(news_vote.author)
           unless Vote.exists?([vote_author.id, news.id, 'News'])

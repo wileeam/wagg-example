@@ -29,7 +29,7 @@ class News < ActiveRecord::Base
   end
 
   def complete?
-    self.votes_complete? && self.comments_complete? && !self.karma.nil?
+    self.complete || (self.votes_complete? && self.comments_complete? && !self.karma.nil?)
   end
 
   def incomplete?
@@ -152,7 +152,7 @@ class News < ActiveRecord::Base
     end
 
     def comments_complete
-      where('news.comments_count == (SELECT count(*) FROM news_comments WHERE news_comments.news_id = news.id)')
+      where('news.comments_count = (SELECT count(*) FROM news_comments WHERE news_comments.news_id = news.id)')
     end
 
     def comments_incomplete
@@ -168,7 +168,7 @@ class News < ActiveRecord::Base
     end
 
     def votes_complete
-      where('(news.votes_count_negative + news.votes_count_positive) == (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
+      where('(news.votes_count_negative + news.votes_count_positive) = (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
     end
 
     def votes_incomplete

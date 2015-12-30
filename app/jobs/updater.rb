@@ -4,12 +4,16 @@ class Updater
 
     def all
 
-      init_index = 1
-      end_index = 200
-      status = ['published', 'discarded', 'queued']
+      status = Hash.new
+      status['published'] = [1,110]
+      status['queued'] = [1,220]
+      status['discarded'] = [1,100]
 
-      status.each do |news_type|
+      status.each do |news_type, indexes|
+        init_index = indexes[0]
+        end_index =  indexes[1]
         index_counter = end_index - WaggExample::PAGE_BATCH_SIZE
+
         while index_counter + WaggExample::PAGE_BATCH_SIZE >= init_index
           pages_list = Wagg.page(news_type, :begin_interval => index_counter + 1, :end_interval => index_counter + WaggExample::PAGE_BATCH_SIZE)
 
