@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: 4c6c58d78ffe89d9bb29bf58151007776393cfb5
+  revision: b0b6952aec578b9ce2c813510fc3f77d2eefb62b
   specs:
     wagg (0.9.7.beta)
       mechanize
@@ -102,13 +102,13 @@ GEM
       nokogiri (>= 1.5.9)
     mail (2.6.3)
       mime-types (>= 1.16, < 3)
-    mechanize (2.7.3)
+    mechanize (2.7.4)
       domain_name (~> 0.5, >= 0.5.1)
       http-cookie (~> 1.0)
-      mime-types (~> 2.0)
+      mime-types (>= 1.17.2, < 3)
       net-http-digest_auth (~> 1.1, >= 1.1.1)
       net-http-persistent (~> 2.5, >= 2.5.2)
-      nokogiri (~> 1.4)
+      nokogiri (~> 1.6)
       ntlm-http (~> 0.1, >= 0.1.1)
       webrobots (>= 0.0.9, < 0.2)
     mime-types (2.99)

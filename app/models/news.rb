@@ -13,11 +13,11 @@ class News < ActiveRecord::Base
   validates_uniqueness_of     :id
 
   def votes_positive
-    self.votes.where('? >= 0', :rate)
+    self.votes.where('rate >= 0')
   end
 
   def votes_negative
-    self.votes.where('? < 0', :rate)
+    self.votes.where('rate < 0')
   end
 
   def closed?
@@ -177,11 +177,33 @@ class News < ActiveRecord::Base
     end
 
     def votes_complete
-      where('(news.votes_count_negative + news.votes_count_positive) = (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
+      #where('(news.votes_count_negative + news.votes_count_positive) = (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
+      votes_positive_complete.votes_negative_complete
     end
 
     def votes_incomplete
-      where('(news.votes_count_negative + news.votes_count_positive) != (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
+      #where('(news.votes_count_negative + news.votes_count_positive) != (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
+      news_list_positive_incomplete = self.votes_positive_incomplete
+      news_list_negative_incomplete = self.votes_negative_incomplete
+
+      # TODO sort result before return
+      news_list_positive_incomplete.concat(news_list_negative_incomplete)
+    end
+
+    def votes_positive_complete
+      joins(:votes).where('votes.rate >= 0').group(:votable_id).having('news.votes_count_positive = count(*)')
+    end
+
+    def votes_positive_incomplete
+      joins(:votes).where('votes.rate >= 0').group(:votable_id).having('news.votes_count_positive != count(*)')
+    end
+
+    def votes_negative_complete
+      joins(:votes).where('votes.rate < 0').group(:votable_id).having('news.votes_count_negative = count(*)')
+    end
+
+    def votes_negative_incomplete
+      joins(:votes).where('votes.rate < 0').group(:votable_id).having('news.votes_count_negative != count(*)')
     end
 
   end

@@ -36,17 +36,12 @@ module NewsProcessor
           n.url_internal = news_item.urls['internal']
           n.url_external = news_item.urls['external']
           n.timestamp_creation = Time.at(news_item.timestamps['creation']).to_datetime
-          unless news_item.timestamps['publication'].nil?
-            n.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
-          end
           n.category = news_item.category
-          n.status = news_item.status
           news_item.tags.each do |t|
             tag = Tag.find_or_create_by(:name => t)
             n.tags << tag
           end
         end
-
       else # Update news (news variable will contain some data from database)
         # TODO Check for comments and votes here (also each comment recursively)
         # Update everything that is possible to have changed
@@ -62,6 +57,13 @@ module NewsProcessor
           end
         end
         news.url_external = news_item.urls['external']
+      end
+
+      news.status = news_item.status
+      if news_item.status == 'published'
+        news.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
+      else # news_item.status == 'queued' || news_item.status == 'discarded'
+        news.timestamp_publication = nil # news_item.timestamps['publication'] == nil
       end
 
       # News voting metadata (and voting data) retrieval if available
