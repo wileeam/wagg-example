@@ -3,13 +3,16 @@ module Maintainer
 
     class << self
 
-      def latest_news
+      def latest_submitted_news
 
-        status = ['published', 'queued', 'discarded']
+        status = Hash.new
+        status['published'] = News.published.last.timestamp_publication.to_i
+        status['queued']    = News.queued.last.timestamp_creation.to_i
+        status['discarded'] = News.discarded.last.timestamp_creation.to_i
 
-        status.each do |news_type|
+        status.each do |news_type, ref_timestamp|
           index_counter = 1
-          ref_timestamp = News.send(news_type).last.timestamp_publication.to_i
+
           page = Wagg.page(news_type, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
 
           while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
@@ -27,7 +30,7 @@ module Maintainer
         end
       end
 
-      def all_open
+      def all_open_news
         news_list = News.open.order(:status => 'ASC', :timestamp_creation => 'DESC')
         news_list.each do |n|
           Rails.logger.info('Updating URL (%{nid}) => %{url}' % {nid: n.id, url: n.url_internal})
