@@ -20,7 +20,14 @@ module CommentsProcessor
       if comment.nil? # New comment
         # Create comment object (after checking that id doesn't really exist in database)
         comment = Comment.find_or_initialize_by(:id => comment_item.id) do |c|
-          author = Author.find_or_update_by_name(comment_item.author)
+          begin
+            author = Author.find_or_update_by_name(comment_item.author)
+          rescue ActiveRecord::RecordNotFound => e
+            # Author has changed its name some time between comment's retrieval and comment's parsing
+            # Solution: Retrieve comment again for new author's name
+            # If this fails here then we need to do a manual check
+            author = Author.find_or_update_by_name(Wagg.comment(comment_item.id).author)
+          end
           c.commenter_id = author.id
           c.body = comment_item.body
           c.timestamp_creation = Time.at(comment_item.timestamps['creation']).to_datetime
@@ -51,7 +58,10 @@ module CommentsProcessor
       end
 
       # Check comment' votes and update
-      if comment_item.votes_available? && !comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count
+      # Due to performance reasons:
+      #  - Votes are retrieved after voting period of comment is over (and votes are still available)
+      #  - Negative weights in comments' votes is preserved, reason to avoid repeating the parsing all the time
+      if comment_item.voting_closed? && comment_item.votes_available? && !comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count
         comment_item.votes.each do |comment_vote|
           vote_author = Author.find_or_update_by_name(comment_vote.author)
           # We overwrite the rate and weight of the vote if they changed due to a previous bug... sorry...
