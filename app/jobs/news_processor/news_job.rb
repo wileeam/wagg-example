@@ -48,7 +48,6 @@ module NewsProcessor
         news.title = news_item.title
         news.description = news_item.description
         news.category = news_item.category
-        news.status = news_item.status
         if news.tags.count != news_item.tags.size || !(news.tags.pluck(:name) - news_item.tags).empty?
           news.tags.clear
           news_item.tags.each do |t|

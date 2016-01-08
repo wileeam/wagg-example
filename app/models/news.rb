@@ -144,8 +144,16 @@ class News < ActiveRecord::Base
       where(:status => 'discarded')
     end
 
+    def unpublished
+      where.not(:status => 'published')
+    end
+
     def latest(time)
       where(:timestamp_creation => time.days.ago..Time.now)
+    end
+
+    def between(initial_time, final_time)
+      where(:timestamp_creation => final_time..initial_time)
     end
 
     def complete

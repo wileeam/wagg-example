@@ -8,6 +8,14 @@ class Comment < ActiveRecord::Base
 
   validates_uniqueness_of   :id
 
+  def votes_positive
+    self.votes.where('rate >= 0')
+  end
+
+  def votes_negative
+    self.votes.where('rate < 0')
+  end
+
   def closed?
     self.votes_closed?
   end
@@ -33,6 +41,7 @@ class Comment < ActiveRecord::Base
   end
 
   def votes_complete?
+    # self.vote_count == 0 is included in the second clause as database's count return zero if nothing is found
     self.votes_closed? && self.votes.count == self.vote_count
   end
 

@@ -61,7 +61,8 @@ module CommentsProcessor
       # Due to performance reasons:
       #  - Votes are retrieved after voting period of comment is over (and votes are still available)
       #  - Negative weights in comments' votes is preserved, reason to avoid repeating the parsing all the time
-      if comment_item.voting_closed? && comment_item.votes_available? && !comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count
+      if comment_item.voting_closed? && comment_item.votes_available? &&
+          ((!comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count) || (comment_item.votes_count.nil? && comment_item.votes.size != comment.votes.count))
         comment_item.votes.each do |comment_vote|
           vote_author = Author.find_or_update_by_name(comment_vote.author)
           # We overwrite the rate and weight of the vote if they changed due to a previous bug... sorry...
@@ -75,6 +76,12 @@ module CommentsProcessor
             vote.save
           end
         end
+
+        if (comment_item.votes_count.nil? || comment_item.karma.nil?) && comment_item.votes.size > 0
+          comment.vote_count = Comment.find(comment_item.id).votes.count
+          comment.karma = Comment.find(comment_item.id).votes.sum(:weight)
+        end
+
       end
 
     end
