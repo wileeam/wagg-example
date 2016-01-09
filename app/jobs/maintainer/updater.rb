@@ -30,8 +30,52 @@ module Maintainer
         end
       end
 
+      def latest_votes_open_news
+
+        status = Hash.new
+        status['published'] = News.published.open.first.timestamp_publication.to_i
+        status['queued']    = News.queued.open.first.timestamp_creation.to_i
+        status['discarded'] = News.discarded.open.first.timestamp_creation.to_i
+
+        status.each do |news_type, ref_timestamp|
+          index_counter = 1
+
+          page = Wagg.page(news_type, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
+
+          while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
+            # Parse and process each news in news_list to be stored in database
+            Rails.logger.info 'Processing page (%{type}) #%{index}' % {type:news_type.upcase, index:page.index}
+            page.news_list.each do |news_url, news_item|
+
+              if !News.exists?(news_item.id)
+                Rails.logger.info 'Parsing URL -> #%{index}::%{url}' % {index: page.index, url: news_url}
+                Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
+              else
+                n = News.find(news_item.id)
+                Rails.logger.info('Updating URL (%{nid}) => %{url}' % {nid: n.id, url: n.url_internal})
+                Rails.logger.info('  Checking votes (%{nid})...' % {nid:n.id})
+                if news_item.votes_available? && ((news_item.votes_count['positive'] != n.votes_positive.count) || (news_item.votes_count['negative'] != n.votes_negative.count))
+                  Rails.logger.info '    Missing %{pos} pos :: %{neg} neg' % {pos:(news_item.votes_count['positive'] - n.votes_positive.count).abs, neg:(news_item.votes_count['negative'] - n.votes_negative.count).abs}
+                  news_item.votes.each do |news_vote|
+                    vote_author = Author.find_or_update_by_name(news_vote.author)
+                    unless Vote.exists?([vote_author.id, n.id, 'News'])
+                      Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news_vote.rate, n.id, 'News'))
+                    end
+                  end
+                end
+              end
+            end
+
+            index_counter += 1
+            page = Wagg.page(news_type, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
+          end
+
+        end
+      end
+
+
       def all_open_news
-        news_list = News.open.order(:status => 'ASC', :timestamp_creation => 'DESC')
+        news_list = News.open.order(:status => :asc, :timestamp_creation => :desc)
         news_list.each do |n|
           Rails.logger.info('Updating URL (%{nid}) => %{url}' % {nid: n.id, url: n.url_internal})
           news_item = Wagg.news(n.url_internal)

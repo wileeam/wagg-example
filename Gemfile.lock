@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: 1fba1c5ddae61fe38ed844d572cfe53dcf661f60
+  revision: 2a6e7ce77e80a78ed8be2c2472b78cafe681ca88
   specs:
     wagg (0.9.8.beta)
       feedjira

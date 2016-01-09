@@ -57,8 +57,9 @@ module Maintainer
           if news_item.voting_closed? && news_item.commenting_closed?
             news.faulty = FALSE
 
-            if (news_item.votes_count["positive"] > 0 && news_item.votes_count["positive"] != news.votes_positive.count) ||
-               (news_item.votes_count["negative"] > 0 && news_item.votes_count["negative"] != news.votes_negative.count)
+            if ((news_item.votes_count["positive"] > 0 && news_item.votes_count["positive"] != news.votes_positive.count) ||
+               (news_item.votes_count["negative"] > 0 && news_item.votes_count["negative"] != news.votes_negative.count)) &&
+               news.votes.count != 0
               news.faulty = TRUE
             end
 
