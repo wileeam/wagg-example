@@ -37,6 +37,8 @@ module Maintainer
         status['queued']    = News.queued.open.first.timestamp_creation.to_i
         status['discarded'] = News.discarded.open.first.timestamp_creation.to_i
 
+        voting_lists = Array.new
+
         status.each do |news_type, ref_timestamp|
           index_counter = 1
 
@@ -46,7 +48,6 @@ module Maintainer
             # Parse and process each news in news_list to be stored in database
             Rails.logger.info 'Processing page (%{type}) #%{index}' % {type:news_type.upcase, index:page.index}
             page.news_list.each do |news_url, news_item|
-
               if !News.exists?(news_item.id)
                 Rails.logger.info 'Parsing URL -> #%{index}::%{url}' % {index: page.index, url: news_url}
                 Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
@@ -54,13 +55,12 @@ module Maintainer
                 n = News.find(news_item.id)
                 Rails.logger.info('Updating URL (%{nid}) => %{url}' % {nid: n.id, url: n.url_internal})
                 Rails.logger.info('  Checking votes (%{nid})...' % {nid:n.id})
-                if news_item.votes_available? && ((news_item.votes_count['positive'] != n.votes_positive.count) || (news_item.votes_count['negative'] != n.votes_negative.count))
+                if news_item.votes_available?
                   Rails.logger.info '    Missing %{pos} pos :: %{neg} neg' % {pos:(news_item.votes_count['positive'] - n.votes_positive.count).abs, neg:(news_item.votes_count['negative'] - n.votes_negative.count).abs}
-                  news_item.votes.each do |news_vote|
-                    vote_author = Author.find_or_update_by_name(news_vote.author)
-                    unless Vote.exists?([vote_author.id, n.id, 'News'])
-                      Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news_vote.rate, n.id, 'News'))
-                    end
+                  if news_item.votes_count['negative'] != n.votes_negative.count
+                    Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(news_item.id, 'News'))
+                  elsif news_item.votes_count['positive'] != n.votes_positive.count
+                    voting_lists.push(VotesProcessor::VotingListJob.new(news_item.id, 'News'))
                   end
                 end
               end
@@ -71,6 +71,12 @@ module Maintainer
           end
 
         end
+
+        # Enqueue now voting lists with only missing positive votes (negative ones are enqueued as they are detected)
+        voting_lists.each do |vl|
+          Delayed::Job.enqueue(vl)
+        end
+
       end
 
 

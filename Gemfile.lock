@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: 2a6e7ce77e80a78ed8be2c2472b78cafe681ca88
+  revision: 94771ba54495f5e1a6defb6609fbaa92f63bdc1d
   specs:
-    wagg (0.9.8.beta)
+    wagg (0.9.9.beta)
       feedjira
       mechanize
 
@@ -192,7 +192,7 @@ GEM
     sdoc (0.4.1)
       json (~> 1.7, >= 1.7.7)
       rdoc (~> 4.0)
-    spring (1.6.1)
+    spring (1.6.2)
     sprockets (3.5.2)
       concurrent-ruby (~> 1.0)
       rack (> 1, < 3)

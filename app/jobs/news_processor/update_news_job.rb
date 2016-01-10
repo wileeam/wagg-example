@@ -64,7 +64,6 @@ module NewsProcessor
           news_item.comments.each do |_, news_comment|
             comment = Comment.find_by(:id => news_comment.id)
             if comment.nil?
-              news_comment.body = news_comment.body.scrub
               Delayed::Job.enqueue(CommentsProcessor::NewCommentJob.new(news_comment))
             elsif !comment.complete?
               Delayed::Job.enqueue(CommentsProcessor::UpdateCommentJob.new(news_comment))
