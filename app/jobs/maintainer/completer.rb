@@ -18,7 +18,7 @@ module Maintainer
             if news_item.comments_count != news.comments.count
               news_item.comments.each do |_, news_comment|
                 unless Comment.exists?(news_comment.id)
-                  CommentsProcessor::CommentJob.new(news_comment).perform
+                  Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_comment))
                 end
               end
             end
@@ -38,7 +38,7 @@ module Maintainer
                 begin
                   vote = Vote.find([vote_author.id, news.id, 'News'])
                 rescue ActiveRecord::RecordNotFound => e
-                  VotesProcessor::VoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news_vote.rate, news.id, "News").perform
+                  Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news_vote.rate, news.id, "News"))
                 else
                   vote.rate = news_vote.rate
                   if vote.rate < 0 && news_vote.weight != vote.weight && vote.weight.nil?
@@ -54,21 +54,21 @@ module Maintainer
 
 
           # Final checks for the news (yet to do one for each comment...)
-          if news_item.voting_closed? && news_item.commenting_closed?
-            news.faulty = FALSE
-
-            if ((news_item.votes_count["positive"] > 0 && news_item.votes_count["positive"] != news.votes_positive.count) ||
-               (news_item.votes_count["negative"] > 0 && news_item.votes_count["negative"] != news.votes_negative.count)) &&
-               news.votes.count != 0
-              news.faulty = TRUE
-            end
-
-            if news_item.comments_count != news.comments.count
-              news.faulty = TRUE
-            end
-
-            news.complete = TRUE
-          end
+          # if news_item.voting_closed? && news_item.commenting_closed?
+          #   news.faulty = FALSE
+          #
+          #   if ((news_item.votes_count["positive"] > 0 && news_item.votes_count["positive"] != news.votes_positive.count) ||
+          #      (news_item.votes_count["negative"] > 0 && news_item.votes_count["negative"] != news.votes_negative.count)) &&
+          #      news.votes.count != 0
+          #     news.faulty = TRUE
+          #   end
+          #
+          #   if news_item.comments_count != news.comments.count
+          #     news.faulty = TRUE
+          #   end
+          #
+          #   news.complete = TRUE
+          # end
           news.save
         end
 

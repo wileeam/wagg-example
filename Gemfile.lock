@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: 94771ba54495f5e1a6defb6609fbaa92f63bdc1d
+  revision: e8aa7f03e667fdff627ec732796be5b65b81f865
   specs:
     wagg (0.9.9.beta)
       feedjira
@@ -181,7 +181,7 @@ GEM
     rdoc (4.2.1)
     remotipart (1.2.1)
     safe_yaml (1.0.4)
-    sass (3.4.20)
+    sass (3.4.21)
     sass-rails (5.0.4)
       railties (>= 4.0.0, < 5.0)
       sass (~> 3.1)

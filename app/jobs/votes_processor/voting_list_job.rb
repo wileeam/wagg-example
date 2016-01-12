@@ -25,12 +25,23 @@ module VotesProcessor
           votes = Wagg.votes_for_comment(item_id)
         else
           # Not good...
+          # TODO Log? Exception?
       end
 
-      if votes.size > (object.votes.count)
+      if votes.size > object.votes.count
         votes.each do |vote|
           vote_author = Author.find_or_update_by_name(vote.author)
-          unless Vote.exists?([vote_author.id, item_id, item_type])
+          if Vote.exists?([vote_author.id, item_id, item_type])
+            # Special case for comments until all comments have been checked for erroneous non-negative weights
+            if item_type == 'Comment'
+              vote_object = Vote.find([vote_author.id, item_id, item_type])
+              vote_object.rate = vote.rate
+              if vote.rate < 0 && vote_object.weight != vote.weight && vote_object.weight.nil?
+                vote_object.weight = vote.weight
+              end
+              vote_object.save
+            end
+          else
             Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, vote.timestamp, vote.weight, vote.rate, item_id, item_type))
           end
         end
@@ -57,5 +68,6 @@ module VotesProcessor
     def failure(job)
       #record_stat 'vote_job/failure'
     end
+
   end
 end

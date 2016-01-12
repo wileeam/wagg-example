@@ -5,9 +5,54 @@ namespace :maintenance do
 
   end
 
+  namespace :comments do
+    desc "Updates votes of closed comments (those created between 30 and 60 days ago)"
+    task :update_votes => :environment  do
+
+      timestamp_thresholds = Hash.new
+      timestamp_thresholds['begin'] = 30.days.ago
+      timestamp_thresholds['end'] = 60.days.ago
+
+      news_comments_list = News.joins(:comments).where(:comments => {:timestamp_creation => timestamp_thresholds['end']..timestamp_thresholds['begin']}).distinct
+
+      news_comments_list.each do |n|
+        Delayed::Job.enqueue(VotesProcessor::NewsCommentsVotesJob.new(n.id, timestamp_thresholds))
+      end
+
+    end
+
+    desc "TODO"
+    task  :mark_complete_faulty =>  :environment  do
+
+      news_list = News.closed.where(:complete => nil)
+
+      news_list.each do |n|
+        news_item = Wagg.news(n.url_internal)
+
+        # Add all missing comments (and their votes)
+        if news_item.commenting_closed? && news_item.comments_available?
+          news.comments_count = news_item.comments_count
+
+          # First add the missing comments if any
+          if news_item.comments_count > news.comments.count
+            # There are missing comments, so we need to retrieve those we don't have
+            news_item.comments.each do |_, news_comment|
+              unless Comment.exists?(news_comment.id)
+                Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_comment))
+              end
+            end
+          end
+        end
+
+
+      end
+
+    end
+  end
+
   namespace :news do
-    desc "Updates votes of open news prioritizing new negative votes and queued news"
-    task :update_votes =>  :environment  do
+    desc  "Updates votes of open news prioritizing new negative votes and queued news"
+    task  :update_votes =>  :environment  do
 
       status = Hash.new
       status['queued']    = News.queued.open.first.timestamp_creation.to_i
@@ -49,6 +94,11 @@ namespace :maintenance do
           Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(vl, 'News'))
         end
       end
+    end
+
+    desc "TODO"
+    task  :mark_complete_faulty =>  :environment  do
+
     end
   end
 

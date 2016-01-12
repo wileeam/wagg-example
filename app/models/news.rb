@@ -98,6 +98,13 @@ class News < ActiveRecord::Base
     !self.votes_closed?
   end
 
+  # TODO: test this method and add others like: first, last_closed, last_open
+  # TODO: comments_closed? can be improved by checking the comments as well.
+  # This gives us the last comment of each news (in the database)
+  def last_comment
+    self.comments.order(:timestamp_creation => :asc).last
+  end
+
   module Scopes
     def comments_closed
       query = "(status = 'published' AND timestamp_publication <= ?)" +
@@ -161,7 +168,8 @@ class News < ActiveRecord::Base
     end
 
     def incomplete
-      where(:complete => FALSE)
+      #where(:complete => FALSE)
+      where('complete = 0 OR complete IS NULL')
     end
 
     def faulty

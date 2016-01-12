@@ -1,5 +1,4 @@
 module VotesProcessor
-  # TODO: Rework parameters into one single parameter
   class VoteJob < Struct.new(:vote_author, :vote_timestamp, :vote_weight, :vote_rate, :vote_votable_id, :vote_votable_type)
 
     def queue_name

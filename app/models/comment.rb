@@ -1,12 +1,18 @@
 class Comment < ActiveRecord::Base
   belongs_to  :commenter,   :foreign_key  => :commenter_id, :class_name => Author
 
-  has_many  :votes,         :as           => :votable
+  has_many    :votes,         :as           => :votable
 
-  has_many  :news_comments
-  has_many  :news,          :through      => :news_comments
+  has_many    :news_comments
+  has_many    :news,          :through      => :news_comments
+  #has_one     :news_comments
+  #has_one     :news,        :through      => :news_comments
 
   validates_uniqueness_of   :id
+
+  def news_index
+    self.news_comments.first.news_index
+  end
 
   def votes_positive
     self.votes.where('rate >= 0')

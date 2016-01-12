@@ -21,5 +21,6 @@ class CreateComments < ActiveRecord::Migration
 
     add_index :comments,    :id,           unique: true
     add_index :comments,    :commenter_id
+    add_index :comments,    :timestamp_creation
   end
 end
