@@ -6,59 +6,45 @@ module NewsProcessor
     end
 
     def enqueue(job)
-      #job.delayed_reference_id   = news_id
-      #job.delayed_reference_type = 'news'
       job.priority = WaggExample::JOB_PRIORITY['news']
       job.save!
     end
 
     def perform
-      news = News.find_by(:url_internal => news_url)
+
+      news = News.find_or_initialize_by(:url_internal => news_url)
 
       # If we have marked the news as complete and/or faulty in database, we don't need to even check beyond
       # TODO Could I use the 'complete?' method in combination or this one to include the 'complete' flag instead?
       if !news.nil? && (news.complete) #|| news.faulty)
+        # TODO Check for completeness of comments?
         return
       end
 
-      # Note that Wagg.News object has a more accurate knowledge on retrieval time
-      # TODO Maybe checking the 'updated_at' field can minimize unnecessary parsing
       # Retrieve the news from the site
+      # Note that Wagg.News object has a more accurate knowledge on retrieval time
       news_item = Wagg.news(news_url)
+      # Retrive the author of the news from database or site
+      news_author = Author.find_or_update_by_name(news_item.author['name'])
 
-      if news.nil? # New news
-        # Create news object (after checking that id doesn't really exist in database)
-        news = News.find_or_initialize_by(:id => news_item.id) do |n|
-          author = Author.find_or_update_by_name(news_item.author['name'])
-          n.poster_id = author.id
-          n.title = news_item.title
-          n.description = news_item.description
-          n.url_internal = news_item.urls['internal']
-          n.url_external = news_item.urls['external']
-          n.timestamp_creation = Time.at(news_item.timestamps['creation']).to_datetime
-          n.category = news_item.category
-          news_item.tags.each do |t|
-            tag = Tag.find_or_create_by(:name => t)
-            n.tags << tag
-          end
+      news.id = news_item.id
+      news.poster_id = news_author.id
+      news.title = news_item.title
+      news.description = news_item.description
+      #news.url_internal = news_item.urls['internal']
+      news.url_external = news_item.urls['external']
+      news.timestamp_creation = Time.at(news_item.timestamps['creation']).to_datetime
+      news.category = news_item.category
+      news.status = news_item.status
+
+      if news_item.tags.size > news.tags.count #|| !(news.tags.pluck(:name) - news_item.tags).empty?
+        news.tags.clear
+        news_item.tags.each do |t|
+          tag = Tag.find_or_create_by(:name => t)
+          news.tags << tag
         end
-      else # Update news (news variable will contain some data from database)
-        # TODO Check for comments and votes here (also each comment recursively)
-        # Update everything that is possible to have changed
-        news.title = news_item.title
-        news.description = news_item.description
-        news.category = news_item.category
-        if news.tags.count != news_item.tags.size || !(news.tags.pluck(:name) - news_item.tags).empty?
-          news.tags.clear
-          news_item.tags.each do |t|
-            tag = Tag.find_or_create_by(:name => t)
-            news.tags << tag
-          end
-        end
-        news.url_external = news_item.urls['external']
       end
 
-      news.status = news_item.status
       if news_item.status == 'published'
         news.timestamp_publication = Time.at(news_item.timestamps['publication']).to_datetime
       else # news_item.status == 'queued' || news_item.status == 'discarded'
@@ -79,56 +65,36 @@ module NewsProcessor
         news.comments_count = news_item.comments_count
       end
 
-      # Persist news object as it will be needed as foreign key
+      # Persist news object because it will be needed as foreign key
       news.save
 
-      # Votes retrieval if available
-      if news_item.votes_available? && ((news_item.votes_count["positive"] != news.votes_positive.count) || (news_item.votes_count["negative"] != news.votes_negative.count))
-        news_item.votes.each do |news_vote|
-          vote_author = Author.find_or_update_by_name(news_vote.author)
-          unless Vote.exists?([vote_author.id, news.id, 'News'])
-            Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, news_vote.timestamp, news_vote.weight, news_vote.rate, news.id, "News"))
-          end
+      # Votes retrieval (any that is missing: not in database) if available (regardless of news open/closed)
+      # Note that only when there are new votes these votes are parsed, otherwise not
+      if news_item.votes_available?
+        if (news_item.votes_count['positive'] > 0 && news_item.votes_count['positive'] > news.votes_positive.count) ||
+            (news_item.votes_count['negative'] > 0 && news_item.votes_count['negative'] > news.votes_negative.count)
+          Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(news_item.id, 'News'))
+          #VotesProcessor::VotingListJob.new(news_item.id, 'News').perform
         end
       end
 
-      # Comments retrieval if available
-      if news_item.comments_available? && (news_item.comments_count != news.comments.count || news.comments_incomplete?)
-        news_item.comments.each do |_, news_comment|
-          if !Comment.exists?(news_comment.id) || Comment.find(news_comment.id).incomplete?
+      # Comments retrieval (any that is missing: not in database) if available (regardless of news open/closed)
+      if news_item.comments_available?
+        if news_item.commenting_closed?
+          news_item.comments.each do |_, news_comment|
             Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_comment))
+            #CommentsProcessor::CommentJob.new(news_comment).perform
+          end
+        elsif news_item.comments_count > news.comments.count
+          news_item.comments.each do |_, news_comment|
+            unless Comment.exists?(news_comment.id)
+              Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_comment))
+              #CommentsProcessor::CommentJob.new(news_comment).perform
+            end
           end
         end
       end
 
-    end
-
-    def before(job)
-      #record_stat 'vote_job/start'
-    end
-
-    def after(job)
-      # TODO: Check news for completeness and mark the 'complete' field if everything ok, otherwise leave it blank?
-      #if news is closed
-        #check that comments are in database
-        #check that news votes are in database
-        #cheack that votes for comments are in database
-        # any discrepancy triggers an update but we need a cut off for those news with issues (faulty field in db?)
-      #else
-      #  nothing to do
-      #end
-    end
-
-    def success(job)
-      #record_stat 'vote_job/success'
-    end
-
-    def error(job, exception)
-      #record_stat 'vote_job/exception'
-    end
-
-    def failure(job)
-      #record_stat 'vote_job/failure'
     end
 
   end

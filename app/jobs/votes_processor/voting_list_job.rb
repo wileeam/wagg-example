@@ -43,6 +43,7 @@ module VotesProcessor
             end
           else
             Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, vote.timestamp, vote.weight, vote.rate, item_id, item_type))
+            #Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.id, vote.timestamp, vote.weight, vote.rate, item_id, item_type))
           end
         end
       end

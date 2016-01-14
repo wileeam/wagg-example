@@ -1,13 +1,12 @@
 module VotesProcessor
   class VoteJob < Struct.new(:vote_author, :vote_timestamp, :vote_weight, :vote_rate, :vote_votable_id, :vote_votable_type)
+  #class VoteJob < Struct.new(:vote_author_id, :vote_timestamp, :vote_weight, :vote_rate, :vote_votable_id, :vote_votable_type)
 
     def queue_name
       WaggExample::JOB_QUEUE['votes']
     end
 
     def enqueue(job)
-      #job.delayed_reference_id   = vote_votable
-      #job.delayed_reference_type = 'vote'
       job.priority = WaggExample::JOB_PRIORITY['votes']
       job.save!
     end
@@ -21,6 +20,7 @@ module VotesProcessor
         author = Author.find_or_update_by_name(vote_author)
         vote = Vote.new(
             voter_id: author.id,
+            #voter_id: vote_author_id,
             timestamp: Time.at(vote_timestamp).to_datetime,
             rate: vote_rate
         )
@@ -39,6 +39,7 @@ module VotesProcessor
         vote.votable_type = vote_votable_type
 
         vote.save unless Vote.exists?([author.id, vote_votable_id, vote_votable_type])
+        #vote.save
       end
     end
 
