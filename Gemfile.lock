@@ -1,8 +1,8 @@
 GIT
   remote: https://github.com/wileeam/wagg.git
-  revision: eac63523fccacad8783f8aa7e1a573e2cf27cb1a
+  revision: cfb2a66fdd88ea9cbe13e71b616e5e9e62fdad42
   specs:
-    wagg (0.9.10.beta)
+    wagg (1.0.3.pre)
       feedjira
       mechanize
 
@@ -130,7 +130,7 @@ GEM
     nested_form (0.3.2)
     net-http-digest_auth (1.4)
     net-http-persistent (2.9.4)
-    nokogiri (1.6.7.1)
+    nokogiri (1.6.7.2)
       mini_portile2 (~> 2.0.0.rc2)
     ntlm-http (0.1.1)
     rack (1.6.4)

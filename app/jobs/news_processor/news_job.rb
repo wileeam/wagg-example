@@ -16,7 +16,7 @@ module NewsProcessor
 
       # If we have marked the news as complete and/or faulty in database, we don't need to even check beyond
       # TODO Could I use the 'complete?' method in combination or this one to include the 'complete' flag instead?
-      if !news.nil? && (news.complete) #|| news.faulty)
+      if !news.nil? && (news.complete && !news.faulty)
         # TODO Check for completeness of comments?
         return
       end

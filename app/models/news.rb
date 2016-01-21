@@ -12,6 +12,10 @@ class News < ActiveRecord::Base
 
   validates_uniqueness_of     :id
 
+  def comment(index)
+    self.comments.where(:news_comments => {:news_index => index})
+  end
+
   def votes_positive
     self.votes.where('rate >= 0')
   end

@@ -15,16 +15,18 @@ module VotesProcessor
       if News.exists?(news_id)
         news = News.find(news_id)
 
+        news_item = Wagg.news(news.url_internal)
+
         news.comments.where(:timestamp_creation => timestamp_thresholds['end']..timestamp_thresholds['begin']).each do |c|
           comment_news_index = c.news_index
-
-          news_item = Wagg.news(news.url_internal)
-          if news_item.comments.has_key?(comment_news_index) && news_item.comment(comment_news_index).id == c.id
+          if news_item.comments.has_key?(comment_news_index) && news_item.comment(comment_news_index).id == c.id && news_item.comment(comment_news_index).votes_available?
             news_comment_item = news_item.comment(comment_news_index)
             if (news_comment_item.votes_count.nil? && !Author.find_by(:name => news_comment_item.author).disabled? && news_comment_item.votes.size != c.votes.count) ||
                 (!news_comment_item.votes_count.nil? && news_comment_item.votes_count != c.votes.count)
               Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(news_comment_item.id, 'Comment'))
             end
+          else
+            # TODO: Comment's votes not available or no key or comment id doesn't match
           end
         end
       else

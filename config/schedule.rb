@@ -24,10 +24,10 @@
 # At 10am
 # run update closed news (go for news itself and comments, do NOT consider votes)
 
-every '0 0,3,4,18 * * *' do
-  runner "Maintainer::Updater.latest_submitted_news", :environment => 'development'
+every '0 0,3,4,15,18 * * *' do
+  rake "maintenance:news:scrap_latest", :environment => 'development'
 end
 
-every '30 22,2 * * *' do
+every '30 22,2,3 * * *' do
   rake "maintenance:news:update_votes", :environment => 'development'
 end

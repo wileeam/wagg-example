@@ -11,12 +11,13 @@ namespace :maintenance do
 
       timestamp_thresholds = Hash.new
       timestamp_thresholds['begin'] = 30.days.ago
-      timestamp_thresholds['end'] = 61.days.ago
+      timestamp_thresholds['end'] = 60.days.ago
 
       news_comments_list = News.joins(:comments).where(:comments => {:timestamp_creation => timestamp_thresholds['end']..timestamp_thresholds['begin']}).distinct
 
       news_comments_list.each do |n|
         Delayed::Job.enqueue(VotesProcessor::NewsCommentsVotesJob.new(n.id, timestamp_thresholds))
+        #VotesProcessor::NewsCommentsVotesJob.new(n.id, timestamp_thresholds).perform
       end
 
     end
@@ -158,7 +159,8 @@ namespace :maintenance do
       news_list = News.closed.where(:complete => nil).union(News.closed.where(:complete => FALSE)).order(:timestamp_creation => :desc)
 
       news_list.each do |n|
-        Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
+        Delayed::Job.enqueue(NewsProcessor::NewsJob.new(n.url_internal))
+        #NewsProcessor::NewsJob.new(n.url_internal).perform
       end
 
     end
@@ -166,7 +168,7 @@ namespace :maintenance do
     desc "Check consistency of scrapped news' votes and comments of each news and tag them 'complete' and/or 'faulty'"
     task  :check_consistency  => :environment do
 
-      news_list = News.closed.where(:complete => nil).union(News.closed.where(:complete => FALSE))
+      news_list = News.closed.where(:complete => nil).union(News.closed.where(:complete => FALSE)).order(:timestamp_creation => :desc)
 
       news_list.each do |n|
         n.complete = FALSE
