@@ -9,11 +9,9 @@ namespace :maintenance do
     desc "Updates votes of closed comments (those created between 30 and 60 days ago)"
     task :update_votes => :environment  do
 
-      timestamp_thresholds = Hash.new
-      timestamp_thresholds['begin'] = 30.days.ago
-      timestamp_thresholds['end'] = 60.days.ago
-
-      news_comments_list = News.joins(:comments).where(:comments => {:timestamp_creation => timestamp_thresholds['end']..timestamp_thresholds['begin']}).distinct
+      comments_list = Comment.incomplete.closed(-1.day).order(:timestamp_creation => :desc)
+      #comments_list = Comment.joins(:news_comments).incomplete.where('comments.timestamp_creation > ?', 2.days.ago).group('news_comments.news_id').having('comments.timestamp_creation = min(comments.timestamp_creation)')
+      news_comments_list = News.joins(:comments).merge(comments_list).distinct
 
       news_comments_list.each do |n|
         Delayed::Job.enqueue(VotesProcessor::NewsCommentsVotesJob.new(n.id, timestamp_thresholds))
@@ -22,55 +20,61 @@ namespace :maintenance do
 
     end
 
-    desc "Check consistency of scrapped comments' votes tag them 'complete' and/or 'faulty'"
-    task  :check_consistency  => :environment do
+    desc "Update all closed and incomplete comments with available"
+    task  :complete =>  :environment  do
 
-      news_list = News.closed.where(:complete => nil).union(News.closed.where(:complete => FALSE))
-      news_comments_list = nil
-      News.joins(:comments).where('comments.timestamp_creation <= ?', latest_time).order(:timestamp_creation => :desc).distinct
-
+      comments_list = Comment.incomplete.closed.order(:timestamp_creation => :desc)
+      #comments_list = Comment.incomplete.where('timestamp_creation >= ?', 60.days.ago).where('timestamp_creation <= ?', 30.days.ago).order(:timestamp_creation => :asc)
+      # TODO Order news_list by comments whose votes are to expire earlier
+      news_list = News.joins(:comments).merge(comments_list).distinct
 
       news_list.each do |n|
         news_item = Wagg.news(n.url_internal)
 
-        n.complete = FALSE
-
-        if news_item.voting_closed? && news_item.commenting_closed?
-          n.faulty = FALSE
-
-          if ((news_item.votes_count["positive"] > 0 && news_item.votes_count["positive"] != n.votes_positive.count) ||
-              (news_item.votes_count["negative"] > 0 && news_item.votes_count["negative"] != n.votes_negative.count)) &&
-              n.votes.count != 0
-            n.faulty = TRUE
+        if news_item.comments_available? && news_item.commenting_closed?
+          comments_news_list = Comment.incomplete.closed.joins(:news).where(:news => {:id => n.id}).order(:timestamp_creation => :desc)
+          comments_news_list.each do |c|
+            if c.id == news_item.comment(c.news_index).id
+              #Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)))
+              CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)).perform
+            else
+              # TODO Not good... raise an exception for the mismatch?
+            end
           end
-
-          if news_item.comments_count != n.comments.count
-            n.faulty = TRUE
-          end
-
-          n.complete = TRUE
         end
-
-        n.save
       end
 
-      # Final checks for each comment of the news
-      if news_item.commenting_closed? && news_item.comments_available?
-        # TODO Use internal queries to avoid overparsing?
+    end
+
+
+    desc "Check consistency of scrapped comments' votes tag them 'complete' and/or 'faulty'"
+    task  :check_consistency  => :environment do
+
+      comments_list = Comment.incomplete.closed(-1.day).order(:timestamp_creation => :desc)
+      news_comments_list = News.joins(:comments).merge(comments_list).distinct
+
+      news_comments_list.each do |n|
+        news_item = Wagg.news(n.url_internal)
+
         news_item.comments.each do |_, news_comment|
-          comment = Comment.find(news_comment.id)
+          c = Comment.find(news_comment.id)
 
-          if news_comment.voting_closed?
-            comment.faulty = FALSE
+          if (c.complete.nil? || c.complete == FALSE) && c.closed?
+            c.complete = FALSE
 
-            if (news_comment.votes_count.nil? && !Author.find_by(:name => news_comment.author).disabled? && news_comment.votes.size != comment.votes.count) ||
-                (!news_comment.votes_count.nil? && news_comment.votes_count != comment.votes.count)
-              comment.faulty = TRUE
+            if news_comment.voting_closed?
+              c.faulty = FALSE
+
+              if (news_comment.votes_count.nil? && !Author.find_by(:name => news_comment.author).disabled? && news_comment.votes_available? && news_comment.votes.size != c.votes.count) ||
+                  (!news_comment.votes_count.nil? && news_comment.votes_count != c.votes.count)
+                c.faulty = TRUE
+              end
+
+              c.complete = TRUE
             end
 
-            comment.complete = TRUE
+            c.save
           end
-          comment.save
         end
       end
 
@@ -83,7 +87,7 @@ namespace :maintenance do
     task  :update_votes =>  :environment  do
 
       # We add this time to account for shifts of news' statuses in the site
-      delta_time = 3.hours
+      delta_time = 6.hours
 
       status_ref_timestamps = Hash.new
       status_ref_timestamps['queued']    = (News.queued.open.first.timestamp_creation - delta_time).to_i
@@ -127,7 +131,7 @@ namespace :maintenance do
     task  :scrap_latest =>  :environment  do
 
       # We add this time to account for shifts of news' statuses in the site
-      delta_time = 3.hours
+      delta_time = 6.hours
 
       status_ref_timestamps = Hash.new
       status_ref_timestamps['published'] = (News.published.last.timestamp_publication - delta_time).to_i
@@ -156,7 +160,7 @@ namespace :maintenance do
     desc "Update all closed and incomplete news with available votes and comments"
     task  :complete =>  :environment  do
 
-      news_list = News.closed.where(:complete => nil).union(News.closed.where(:complete => FALSE)).order(:timestamp_creation => :desc)
+      news_list = News.closed.incomplete.order(:timestamp_creation => :desc)
 
       news_list.each do |n|
         Delayed::Job.enqueue(NewsProcessor::NewsJob.new(n.url_internal))
@@ -168,7 +172,7 @@ namespace :maintenance do
     desc "Check consistency of scrapped news' votes and comments of each news and tag them 'complete' and/or 'faulty'"
     task  :check_consistency  => :environment do
 
-      news_list = News.closed.where(:complete => nil).union(News.closed.where(:complete => FALSE)).order(:timestamp_creation => :desc)
+      news_list = News.incomplete.closed(-1.day).order(:timestamp_creation => :desc)
 
       news_list.each do |n|
         n.complete = FALSE

@@ -16,7 +16,7 @@ module CommentsProcessor
 
       # If we have marked the comment as complete and/or faulty in database, we don't need to even check beyond
       # TODO Could I use the 'complete?' method in combination or this one to include the 'complete' flag instead?
-      if !comment.nil? && (comment.complete) #|| comment.faulty)
+      if !comment.nil? && (comment.complete && !comment.faulty.nil? && !comment.faulty?)
         return
       end
 
@@ -61,10 +61,10 @@ module CommentsProcessor
       #  - Negative weights in comments' votes is preserved, reason to avoid repeating the parsing all the time
       #if comment_item.voting_closed? && comment_item.votes_available?
       if comment_item.votes_available?
-        if !comment_item.votes_count.nil? && comment_item.votes_count > comment.votes.count
+        if !comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count
           Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(comment_item.id, 'Comment'))
           #VotesProcessor::VotingListJob.new(comment_item.id, 'Comment').perform
-        elsif comment_item.votes_count.nil? && !Author.find_by(:name => comment_item.author).disabled? && comment_item.votes.size > comment.votes.count
+        elsif comment_item.votes_count.nil? && !Author.find_by(:name => comment_item.author).disabled? && comment_item.votes.size != comment.votes.count
           #TODO This is redundant as I have already parsed the votes...
           Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(comment_item.id, 'Comment'))
           #VotesProcessor::VotingListJob.new(comment_item.id, 'Comment').perform
@@ -72,6 +72,16 @@ module CommentsProcessor
           comment.karma = comment_item.votes.inject(0){ |sum, comment_vote| sum + comment_vote.weight }
           comment.save
         end
+      end
+
+      # Check consistency if possible (but mark complete only if successful)
+      if comment_item.voting_closed?
+          unless (comment_item.votes_count.nil? && !Author.find_by(:name => comment_item.author).disabled? && comment_item.votes_available? && comment_item.votes.size != comment.votes.count) ||
+              (!comment_item.votes_count.nil? && comment_item.votes_count != comment.votes.count)
+            comment.faulty = FALSE
+            comment.complete = TRUE
+            comment.save
+          end
       end
 
     end

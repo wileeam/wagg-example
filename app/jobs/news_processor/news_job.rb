@@ -16,7 +16,7 @@ module NewsProcessor
 
       # If we have marked the news as complete and/or faulty in database, we don't need to even check beyond
       # TODO Could I use the 'complete?' method in combination or this one to include the 'complete' flag instead?
-      if !news.nil? && (news.complete && !news.faulty)
+      if !news.nil? && (news.complete && !news.faulty.nil? && !news.faulty?)
         # TODO Check for completeness of comments?
         return
       end
@@ -24,6 +24,7 @@ module NewsProcessor
       # Retrieve the news from the site
       # Note that Wagg.News object has a more accurate knowledge on retrieval time
       news_item = Wagg.news(news_url)
+
       # Retrive the author of the news from database or site
       news_author = Author.find_or_update_by_name(news_item.author['name'])
 
@@ -71,8 +72,8 @@ module NewsProcessor
       # Votes retrieval (any that is missing: not in database) if available (regardless of news open/closed)
       # Note that only when there are new votes these votes are parsed, otherwise not
       if news_item.votes_available?
-        if (news_item.votes_count['positive'] > 0 && news_item.votes_count['positive'] > news.votes_positive.count) ||
-            (news_item.votes_count['negative'] > 0 && news_item.votes_count['negative'] > news.votes_negative.count)
+        if (news_item.votes_count['positive'] > 0 && news_item.votes_count['positive'] != news.votes_positive.count) ||
+            (news_item.votes_count['negative'] > 0 && news_item.votes_count['negative'] != news.votes_negative.count)
           Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(news_item.id, 'News'))
           #VotesProcessor::VotingListJob.new(news_item.id, 'News').perform
         end
@@ -85,13 +86,24 @@ module NewsProcessor
             Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_comment))
             #CommentsProcessor::CommentJob.new(news_comment).perform
           end
-        elsif news_item.comments_count > news.comments.count
+        elsif news_item.comments_count != news.comments.count
           news_item.comments.each do |_, news_comment|
             unless Comment.exists?(news_comment.id)
               Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_comment))
               #CommentsProcessor::CommentJob.new(news_comment).perform
             end
           end
+        end
+      end
+
+      # Check consistency if possible (but mark complete only if successful)
+      if news_item.voting_closed? && news_item.commenting_closed?
+        unless (((news_item.votes_count["positive"] > 0 && news_item.votes_count["positive"] != news.votes_positive.count) ||
+            (news_item.votes_count["negative"] > 0 && news_item.votes_count["negative"] != news.votes_negative.count)) && news.votes.count != 0) ||
+            (news_item.comments_count != news.comments.count)
+          news.faulty = FALSE
+          news.complete = TRUE
+          news.save
         end
       end
 

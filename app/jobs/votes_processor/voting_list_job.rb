@@ -6,8 +6,6 @@ module VotesProcessor
     end
 
     def enqueue(job)
-      #job.delayed_reference_id   = news_id
-      #job.delayed_reference_type = 'news'
       job.priority = WaggExample::JOB_PRIORITY['voting_lists']
       job.save!
     end
@@ -46,6 +44,37 @@ module VotesProcessor
             #Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.id, vote.timestamp, vote.weight, vote.rate, item_id, item_type))
           end
         end
+      elsif votes.size < object.votes.count
+        case item_type
+          when 'News'
+            object_item = Wagg.news(object.url_internal)
+            votes_count = object_item.votes_count['positive'] + object_item.votes_count['negative']
+          when 'Comment'
+            object_item = Wagg.comment(object.id)
+            votes_count = object_item.votes_count
+          else
+            # Not good...
+            # TODO Log? Exception?
+        end
+
+        if votes_count < object.votes.count
+          votes_list = Array.new
+          votes.each do |vote|
+            vote_author = Author.find_or_update_by_name(vote.author)
+            if Vote.exists?([vote_author.id, item_id, item_type])
+              votes_list.push(Vote.find([vote_author.id, item_id, item_type]))
+            else
+              Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.name, vote.timestamp, vote.weight, vote.rate, item_id, item_type))
+              #Delayed::Job.enqueue(VotesProcessor::VoteJob.new(vote_author.id, vote.timestamp, vote.weight, vote.rate, item_id, item_type))
+            end
+          end
+
+          votes_deletable_list = object.votes - votes_list
+          votes_deletable_list.each do |vote_deletable|
+            vote_deletable.destroy
+          end
+        end
+
       end
 
     end

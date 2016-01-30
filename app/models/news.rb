@@ -12,6 +12,14 @@ class News < ActiveRecord::Base
 
   validates_uniqueness_of     :id
 
+  def vote_count
+    self.votes_count_positive + self.votes_count_negative
+  end
+
+  def votes_count
+    self.vote_count
+  end
+
   def comment(index)
     self.comments.where(:news_comments => {:news_index => index})
   end
@@ -127,19 +135,19 @@ class News < ActiveRecord::Base
       where(query, min_time, min_time)
     end
 
-    def closed
+    def closed(delta_time=0)
       query = "(status = 'published' AND timestamp_publication <= ?)" +
             " OR " +
             "((status = 'queued' OR status = 'discarded') AND timestamp_creation <= ?)"
-      min_time = 30.days.ago
+      min_time = 30.days.ago + delta_time
       where(query, min_time, min_time)
     end
 
-    def open
+    def open(delta_time=0)
       query = "(status = 'published' AND timestamp_publication > ?)" +
           " OR " +
           "((status = 'queued' OR status = 'discarded') AND timestamp_creation > ?)"
-      min_time = 30.days.ago
+      min_time = 30.days.ago + delta_time
       where(query, min_time, min_time)
     end
 
@@ -172,7 +180,7 @@ class News < ActiveRecord::Base
     end
 
     def incomplete
-      #where(:complete => FALSE)
+      #where('complete IS NOT TRUE')
       where('complete = 0 OR complete IS NULL')
     end
 
@@ -198,7 +206,7 @@ class News < ActiveRecord::Base
 
     def votes_complete
       #where('(news.votes_count_negative + news.votes_count_positive) = (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
-      votes_positive_complete.votes_negative_complete
+      joins(:votes).group(:votable_id).having('news.votes_count_positive + news.votes_count_negative = count(*)')
     end
 
     def votes_incomplete

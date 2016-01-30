@@ -10,6 +10,10 @@ class Comment < ActiveRecord::Base
 
   validates_uniqueness_of   :id
 
+  def votes_count
+    self.vote_count
+  end
+
   def news_index
     self.news_comments.first.news_index
   end
@@ -36,6 +40,10 @@ class Comment < ActiveRecord::Base
 
   def incomplete?
     !self.complete?
+  end
+
+  def faulty?
+    self.faulty
   end
 
   def votes_closed?
@@ -70,20 +78,31 @@ class Comment < ActiveRecord::Base
   end
 
   module Scopes
-    def open
-      where(:timestamp_creation => 30.days.ago..Time.now)
+    def open(delta_time=0)
+      min_time = 30.days.ago + delta_time
+      where('comments.timestamp_creation > ?', min_time)
     end
 
-    def closed
-      where.not(:timestamp_creation => 30.days.ago..Time.now)
+    def closed(delta_time=0)
+      min_time = 30.days.ago + delta_time
+      where('comments.timestamp_creation <= ?', min_time)
     end
 
     def last(time)
       where(:timestamp_creation => time..Time.now)
     end
 
+    def complete
+      where(:complete => TRUE)
+    end
+
     def incomplete
-      where(:karma => nil, :vote_count => nil)
+      #where('complete IS NOT TRUE')
+      where('comments.complete = 0 OR comments.complete IS NULL')
+    end
+
+    def faulty
+      where(:faulty => TRUE)
     end
 
     def votes_complete

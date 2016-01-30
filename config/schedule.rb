@@ -25,9 +25,17 @@
 # run update closed news (go for news itself and comments, do NOT consider votes)
 
 every '0 0,3,4,15,18 * * *' do
-  rake "maintenance:news:scrap_latest", :environment => 'development'
+  rake "maintenance:news:scrap_latest",       :environment  =>  'development'
 end
 
 every '30 22,2,3 * * *' do
-  rake "maintenance:news:update_votes", :environment => 'development'
+  rake "maintenance:news:update_votes",       :environment  =>  'development'
+end
+
+every :day, :at => '6am' do
+  rake "maintenance:news:complete",           :environment  =>  'development'
+end
+
+every :day, :at => '8am' do
+  rake "maintenance:news:check_consistency",  :environment  =>  'development'
 end

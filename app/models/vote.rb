@@ -15,4 +15,7 @@ class Vote < ActiveRecord::Base
     self.rate < 0
   end
 
+  def to_s
+    "VOTE :: #{self.votable_type}|#{self.votable_id} @ #{self.timestamp} :: [#{self.voter_id}] :: (#{self.rate}) #{self.weight}"
+  end
 end
