@@ -32,10 +32,23 @@ every '30 22,2,3 * * *' do
   rake "maintenance:news:update_votes",       :environment  =>  'development'
 end
 
-every :day, :at => '6am' do
+every :day, :at => '5am' do
   rake "maintenance:news:complete",           :environment  =>  'development'
 end
 
 every :day, :at => '8am' do
   rake "maintenance:news:check_consistency",  :environment  =>  'development'
+end
+
+
+#every '30 1 * * *' do
+#  rake "maintenance:commentss:update_votes", :environment  =>  'development'
+#end
+
+every :day, :at => '10am' do
+  rake "maintenance:comments:complete",       :environment  =>  'development'
+end
+
+every :day, :at => '1pm' do
+  rake "maintenance:comments:check_consistency",  :environment  =>  'development'
 end

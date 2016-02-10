@@ -52,6 +52,18 @@ check process dj_comments_7
   stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 7 --queue=comments stop'"
   group dj_comments
 
+check process dj_comments_8
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.8.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 8 --queue=comments start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 8 --queue=comments stop'"
+  group dj_comments
+
+check process dj_comments_9
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.9.pid
+  start program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 9 --queue=comments start'"
+  stop program = "/bin/su - www-data && /bin/bash -c 'cd /var/www/wagg && RAILS_ENV=development bin/delayed_job -i 9 --queue=comments stop'"
+  group dj_comments
+
 
 check process dj_votes_10
   with pidfile /var/www/wagg/tmp/pids/delayed_job.10.pid
@@ -69,6 +81,12 @@ check process dj_votes_12
   with pidfile /var/www/wagg/tmp/pids/delayed_job.12.pid
   start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 12 --queue=votes start'"
   stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 12 --queue=votes stop'"
+  group dj_votes
+
+check process dj_votes_13
+  with pidfile /var/www/wagg/tmp/pids/delayed_job.13.pid
+  start program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 13 --queue=votes start'"
+  stop program = "/bin/su - www-data -c '/usr/bin/env RAILS_ENV=development /var/www/wagg/bin/delayed_job -i 13 --queue=votes stop'"
   group dj_votes
 
 

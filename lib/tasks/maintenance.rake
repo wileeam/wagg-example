@@ -24,7 +24,7 @@ namespace :maintenance do
     task  :complete =>  :environment  do
 
       comments_list = Comment.incomplete.closed.order(:timestamp_creation => :desc)
-      #comments_list = Comment.incomplete.where('timestamp_creation >= ?', 60.days.ago).where('timestamp_creation <= ?', 30.days.ago).order(:timestamp_creation => :asc)
+      #comments_list = Comment.incomplete.where('comments.timestamp_creation >= ?', 60.days.ago).where('comments.timestamp_creation <= ?', 30.days.ago).order(:timestamp_creation => :asc)
       # TODO Order news_list by comments whose votes are to expire earlier
       news_list = News.joins(:comments).merge(comments_list).distinct
 

@@ -14,16 +14,23 @@
 ActiveRecord::Schema.define(version: 20151218030054) do
 
   create_table "affinities", id: false, force: :cascade do |t|
-    t.integer  "minor_id",           limit: 4,              null: false
-    t.integer  "major_id",           limit: 4,              null: false
-    t.integer  "closeness",          limit: 4,  default: 0
+    t.integer  "minor_id",           limit: 4,               null: false
+    t.integer  "major_id",           limit: 4,               null: false
+    t.integer  "week",               limit: 4,               null: false
+    t.integer  "year",               limit: 4,               null: false
+    t.string   "status",             limit: 255
+    t.integer  "closeness_pos",      limit: 4,   default: 0
+    t.integer  "closeness_neg",      limit: 4,   default: 0
+    t.integer  "closeness_dif",      limit: 4,   default: 0
     t.float    "weighted_closeness", limit: 24
-    t.datetime "created_at",                                null: false
-    t.datetime "updated_at",                                null: false
+    t.datetime "created_at",                                 null: false
+    t.datetime "updated_at",                                 null: false
   end
 
   add_index "affinities", ["major_id"], name: "index_affinities_on_major_id", using: :btree
+  add_index "affinities", ["minor_id", "major_id"], name: "index_affinities_on_minor_id_and_major_id", using: :btree
   add_index "affinities", ["minor_id"], name: "index_affinities_on_minor_id", using: :btree
+  add_index "affinities", ["week", "year"], name: "index_affinities_on_week_and_year", using: :btree
 
   create_table "authors", force: :cascade do |t|
     t.string   "name",       limit: 191
@@ -50,12 +57,15 @@ ActiveRecord::Schema.define(version: 20151218030054) do
     t.integer  "vote_count",         limit: 4
     t.integer  "karma",              limit: 4
     t.integer  "commenter_id",       limit: 4
+    t.boolean  "complete"
+    t.boolean  "faulty"
     t.datetime "created_at",                       null: false
     t.datetime "updated_at",                       null: false
   end
 
   add_index "comments", ["commenter_id"], name: "index_comments_on_commenter_id", using: :btree
   add_index "comments", ["id"], name: "index_comments_on_id", unique: true, using: :btree
+  add_index "comments", ["timestamp_creation"], name: "index_comments_on_timestamp_creation", using: :btree
 
   create_table "delayed_jobs", force: :cascade do |t|
     t.integer  "priority",   limit: 4,     default: 0, null: false
@@ -90,6 +100,8 @@ ActiveRecord::Schema.define(version: 20151218030054) do
     t.integer  "clicks",                limit: 4
     t.integer  "comments_count",        limit: 4
     t.integer  "poster_id",             limit: 4
+    t.boolean  "complete"
+    t.boolean  "faulty"
     t.datetime "created_at",                          null: false
     t.datetime "updated_at",                          null: false
   end

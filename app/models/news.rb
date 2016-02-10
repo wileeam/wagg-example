@@ -205,8 +205,8 @@ class News < ActiveRecord::Base
     end
 
     def votes_complete
-      #where('(news.votes_count_negative + news.votes_count_positive) = (SELECT count(*) FROM votes WHERE votes.votable_id = news.id and votes.votable_type="News")')
-      joins(:votes).group(:votable_id).having('news.votes_count_positive + news.votes_count_negative = count(*)')
+      #joins(:votes).group(:votable_id).having('news.votes_count_positive = sum(votes.rate >= 0) and news.votes_count_negative = sum(votes.rate < 0)')
+      where("news.votes_count_positive = (SELECT count(*) from votes where `votes`.`votable_id` = `news`.`id` AND `votes`.`votable_type` = 'News' AND votes.rate >= 0) AND news.votes_count_negative = (SELECT count(*) from votes where `votes`.`votable_id` = `news`.`id` AND `votes`.`votable_type` = 'News' AND votes.rate < 0)")
     end
 
     def votes_incomplete

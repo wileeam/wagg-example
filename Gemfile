@@ -48,6 +48,7 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 gem 'wagg', :git => 'https://github.com/wileeam/wagg.git'
 gem 'composite_primary_keys', '~> 8.1.1'
 gem 'active_record_union'
+gem 'activerecord-import'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
