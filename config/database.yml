@@ -6,11 +6,11 @@
 #
 default: &default
   adapter: mysql2
-  reconnect: false
-  host: localhost
+  reconnect: true
+  host: 127.0.0.1
   port: 3306
   database: wagg
-  pool: 5
+  pool: 25
   username: wagg
   password: wagg
   timeout: 5000
