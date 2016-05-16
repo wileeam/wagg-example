@@ -9,9 +9,8 @@ namespace :maintenance do
     desc "Updates votes of closed comments (those created between 30 and 60 days ago)"
     task :update_votes => :environment  do
 
-      comments_list = Comment.incomplete.closed(-1.day).order(:timestamp_creation => :desc)
-      #comments_list = Comment.joins(:news_comments).incomplete.where('comments.timestamp_creation > ?', 2.days.ago).group('news_comments.news_id').having('comments.timestamp_creation = min(comments.timestamp_creation)')
-      news_comments_list = News.joins(:comments).merge(comments_list).distinct
+      news_comments_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed(-1.day).order(:timestamp_creation => :desc).limit(50000)).pluck(:news_id).uniq
+      news_comments_list = News.where(:id => news_comments_id_list)
 
       news_comments_list.each do |n|
         Delayed::Job.enqueue(VotesProcessor::NewsCommentsVotesJob.new(n.id, timestamp_thresholds))
@@ -23,20 +22,18 @@ namespace :maintenance do
     desc "Update all closed and incomplete comments with available"
     task  :complete =>  :environment  do
 
-      comments_list = Comment.incomplete.closed.order(:timestamp_creation => :desc)
-      #comments_list = Comment.incomplete.where('comments.timestamp_creation >= ?', 60.days.ago).where('comments.timestamp_creation <= ?', 30.days.ago).order(:timestamp_creation => :asc)
-      # TODO Order news_list by comments whose votes are to expire earlier
-      news_list = News.joins(:comments).merge(comments_list).distinct
+      news_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed.order(:timestamp_creation => :desc).limit(50000)).pluck(:news_id).uniq
+      news_list = News.where(:id => news_id_list)
 
       news_list.each do |n|
         news_item = Wagg.news(n.url_internal)
 
         if news_item.comments_available? && news_item.commenting_closed?
-          comments_news_list = Comment.incomplete.closed.joins(:news).where(:news => {:id => n.id}).order(:timestamp_creation => :desc)
+          comments_news_list = Comment.incomplete.closed.joins(:news_comments).where(:news_comments => {:news_id => n.id}).order(:timestamp_creation => :desc)
           comments_news_list.each do |c|
             if c.id == news_item.comment(c.news_index).id
-              #Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)))
-              CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)).perform
+              Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)))
+              #CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)).perform
             else
               # TODO Not good... raise an exception for the mismatch?
             end
@@ -90,9 +87,9 @@ namespace :maintenance do
       delta_time = 6.hours
 
       status_ref_timestamps = Hash.new
-      status_ref_timestamps['queued']    = (News.queued.open.first.timestamp_creation - delta_time).to_i
-      status_ref_timestamps['published'] = (News.published.open.first.timestamp_publication - delta_time).to_i
-      status_ref_timestamps['discarded'] = (News.discarded.open.first.timestamp_creation - delta_time).to_i
+      status_ref_timestamps['queued']    = (News.queued.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i
+      status_ref_timestamps['published'] = (News.published.open.order(:timestamp_creation => :asc).first.timestamp_publication - delta_time).to_i
+      status_ref_timestamps['discarded'] = (News.discarded.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i
 
       status_ref_timestamps.each do |status, ref_timestamp|
         voting_lists = Array.new
@@ -134,9 +131,9 @@ namespace :maintenance do
       delta_time = 6.hours
 
       status_ref_timestamps = Hash.new
-      status_ref_timestamps['published'] = (News.published.last.timestamp_publication - delta_time).to_i
-      status_ref_timestamps['queued']    = (News.queued.last.timestamp_creation - delta_time).to_i
-      status_ref_timestamps['discarded'] = (News.discarded.last.timestamp_creation - delta_time).to_i
+      status_ref_timestamps['published'] = (News.published.order(:timestamp_publication => :asc).last.timestamp_publication - delta_time).to_i
+      status_ref_timestamps['queued']    = (News.queued.order(:timestamp_creation => :asc).last.timestamp_creation - delta_time).to_i
+      status_ref_timestamps['discarded'] = (News.discarded.order(:timestamp_creation => :asc).last.timestamp_creation - delta_time).to_i
 
       status_ref_timestamps.each do |status, ref_timestamp|
         index_counter = 1
@@ -146,7 +143,13 @@ namespace :maintenance do
         while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
           # Parse and process each news in news_list to be stored in database
           page.news_list.each do |news_url, news|
-            Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
+            if !News.exists?(news.id)
+              if Delayed::Job.where(:queue => 'news').count < 1000
+                Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
+              else
+                NewsProcessor::NewsJob.new(news_url).perform
+              end
+            end
           end
 
           index_counter += 1

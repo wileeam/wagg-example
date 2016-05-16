@@ -24,7 +24,7 @@
 # At 10am
 # run update closed news (go for news itself and comments, do NOT consider votes)
 
-every '0 0,3,4,15,18 * * *' do
+every '0 0,3,4,15,18,20 * * *' do
   rake "maintenance:news:scrap_latest",       :environment  =>  'development'
 end
 

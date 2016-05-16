@@ -3,8 +3,9 @@ class CreateNews < ActiveRecord::Migration
     create_table :news do |t|
       t.text        :title
       t.text        :description
-      t.string      :category, :limit => 191
-      t.string      :status, :limit => 191
+      t.string      :category,      :limit => 191
+      t.string      :status,        :limit => 191
+      #t.integer     :status,       :default => 0
       t.datetime    :timestamp_creation
       t.datetime    :timestamp_publication
       t.text        :url_internal
@@ -31,6 +32,8 @@ class CreateNews < ActiveRecord::Migration
     add_index(:news, :id, unique: true)
     add_index(:news, :poster_id)
     add_index(:news, :url_internal, :length => 191)
+    add_index(:news, :timestamp_creation)
+    add_index(:news, :timestamp_publication)
   end
 
 end

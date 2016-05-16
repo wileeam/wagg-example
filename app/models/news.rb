@@ -1,4 +1,5 @@
 class News < ActiveRecord::Base
+  #enum status: [ :queued, :published, :discarded ]
 
   belongs_to  :poster,        :foreign_key  => :poster_id, :class_name => Author
 
@@ -11,6 +12,7 @@ class News < ActiveRecord::Base
   has_many    :comments,      :through      => :news_comments
 
   validates_uniqueness_of     :id
+
 
   def vote_count
     self.votes_count_positive + self.votes_count_negative

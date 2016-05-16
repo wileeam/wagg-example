@@ -7,6 +7,10 @@ class Vote < ActiveRecord::Base
   belongs_to  :comment,   -> { where(:votes => {:votable_type => 'Comment'}) },   :foreign_key => :votable_id
   belongs_to  :news,      -> { where(:votes => {:votable_type => 'News'}) },      :foreign_key => :votable_id
 
+  def covotes
+    Vote.find_by(:votable_id => self.votable_id)
+  end
+
   def positive?
     self.rate >= 0
   end

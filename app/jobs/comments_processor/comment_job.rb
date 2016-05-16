@@ -49,6 +49,7 @@ module CommentsProcessor
       comment.save
 
       # Link comment with the news if it wasn't already
+      # TODO: Cleanup URLs of the website's main address...
       comment_news = News.find_by(:url_internal => comment_item.news_url)
       comment_news_index = comment_item.news_index
       unless comment.news_comments.exists?(:news => comment_news, :news_index => comment_news_index)
