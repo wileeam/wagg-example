@@ -4,7 +4,11 @@ source 'https://rubygems.org'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '>= 4.2.5'
 # Use MySQL as the database for Active Record
-gem 'mysql2'
+# Gem mysql2 does not support jRuby, use activerecord-jdbcmysql-adapter instead
+group :production, :development do
+  gem 'mysql2', :platform => :ruby
+  gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
+end
 # Use SCSS for stylesheets
 gem 'sass-rails', '~> 5.0'
 # Use Uglifier as compressor for JavaScript assets
@@ -45,17 +49,22 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 
-gem 'wagg', :git => 'https://github.com/wileeam/wagg.git'
+# Temporarily switching to mechanize gem for compability with wagg until mechanize gem is bumped
+gem 'mechanize', github: 'sparklemotion/mechanize', ref: 'master'
+gem 'wagg', github: 'wileeam/wagg', ref: 'master'
+
 gem 'composite_primary_keys', '~> 8.1.1'
 gem 'active_record_union'
 gem 'activerecord-import'
 
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
-  gem 'byebug'
+  # Gem byebug does not support jRuby
+  gem 'byebug', :platform => :ruby
 
   # Access an IRB console on exception pages or by using <%= console %> in views
-  gem 'web-console', '~> 2.0'
+  # Requires gem binding_of_caller which does not support jRuby
+  gem 'web-console', '~> 2.0', :platform => :ruby
 
   # Spring speeds up development by keeping your application running in the background. Read more: https://github.com/rails/spring
   gem 'spring'

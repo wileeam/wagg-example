@@ -1,3 +1,5 @@
+require 'thread'
+
 namespace :maintenance do
 
   desc "TODO"
@@ -6,6 +8,9 @@ namespace :maintenance do
   end
 
   namespace :comments do
+
+    THREAD_WORKERS = 3
+
     desc "Updates votes of closed comments (those created between 30 and 60 days ago)"
     task :update_votes => :environment  do
 
@@ -22,24 +27,39 @@ namespace :maintenance do
     desc "Update all closed and incomplete comments with available"
     task  :complete =>  :environment  do
 
-      news_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed.order(:timestamp_creation => :desc).limit(50000)).pluck(:news_id).uniq
+      COMMENTS_SIZE = 500000
+
+      news_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed.order(:timestamp_creation => :desc).limit(COMMENTS_SIZE)).pluck(:news_id).uniq
       news_list = News.where(:id => news_id_list)
 
+      news_list_queue = Queue.new
       news_list.each do |n|
-        news_item = Wagg.news(n.url_internal)
+        news_list_queue.push(n)
+      end
 
-        if news_item.comments_available? && news_item.commenting_closed?
-          comments_news_list = Comment.incomplete.closed.joins(:news_comments).where(:news_comments => {:news_id => n.id}).order(:timestamp_creation => :desc)
-          comments_news_list.each do |c|
-            if c.id == news_item.comment(c.news_index).id
-              Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)))
-              #CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)).perform
-            else
-              # TODO Not good... raise an exception for the mismatch?
+      workers = (0..THREAD_WORKERS).map do
+        Thread.new do
+          begin
+            while n = news_list_queue.pop(true)
+              news_item = Wagg.news(n.url_internal)
+              if news_item.comments_available? && news_item.commenting_closed?
+                comments_news_list = Comment.incomplete.closed.joins(:news_comments).where(:news_comments => {:news_id => n.id}).order(:timestamp_creation => :desc)
+                comments_news_list.each do |c|
+                  if c.id == news_item.comment(c.news_index).id
+                    Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)))
+                    #CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)).perform
+                  else
+                    # TODO Not good... raise an exception for the mismatch?
+                  end
+                end
+              end
             end
+          rescue ThreadError
           end
         end
       end
+
+      workers.map(&:join)
 
     end
 
