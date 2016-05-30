@@ -41,9 +41,9 @@ every :day, :at => '8am' do
 end
 
 
-#every '30 1 * * *' do
-#  rake "maintenance:commentss:update_votes", :environment  =>  'development'
-#end
+every :day, :at => '7am' do
+  rake "maintenance:comments:update_votes", :environment  =>  'development'
+end
 
 every :day, :at => '10am' do
   rake "maintenance:comments:complete",       :environment  =>  'development'

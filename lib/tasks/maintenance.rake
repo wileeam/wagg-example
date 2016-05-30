@@ -2,6 +2,8 @@ require 'thread'
 
 namespace :maintenance do
 
+  # TODO: Tasks that rely only on database don't need threads, those using the Wagg API should use threads
+
   desc "TODO"
   task :todo =>  :environment  do
 
@@ -9,27 +11,55 @@ namespace :maintenance do
 
   namespace :comments do
 
-    THREAD_WORKERS = 3
+    THREAD_COMMENTS_WORKERS = 3
+    COMMENTS_BATCH_SIZE = 500000
 
     desc "Updates votes of closed comments (those created between 30 and 60 days ago)"
     task :update_votes => :environment  do
 
-      news_comments_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed(-1.day).order(:timestamp_creation => :desc).limit(50000)).pluck(:news_id).uniq
+      # Oldest to newest (ascending) order
+      news_comments_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed.where('comments.timestamp_creation > ?', 60.days.ago).order(:timestamp_creation => :asc)).pluck(:news_id).uniq
       news_comments_list = News.where(:id => news_comments_id_list)
 
+      news_comments_queue = Queue.new
       news_comments_list.each do |n|
-        Delayed::Job.enqueue(VotesProcessor::NewsCommentsVotesJob.new(n.id, timestamp_thresholds))
-        #VotesProcessor::NewsCommentsVotesJob.new(n.id, timestamp_thresholds).perform
+        news_comments_queue.push(n)
       end
+
+      workers = (0..THREAD_COMMENTS_WORKERS).map do
+        Thread.new do
+          begin
+            while n = news_comments_queue.pop(true)
+              news_item = Wagg.news(n.url_internal)
+
+              n.comments.incomplete.closed.each do |c|
+                comment_news_index = c.news_index
+                if news_item.comments.has_key?(comment_news_index) && news_item.comment(comment_news_index).id == c.id && news_item.comment(comment_news_index).votes_available?
+                  news_comment_item = news_item.comment(comment_news_index)
+                  if (news_comment_item.votes_count.nil? && !Author.find_by(:name => news_comment_item.author).disabled? && news_comment_item.votes.size != c.votes.count) ||
+                      (!news_comment_item.votes_count.nil? && news_comment_item.votes_count != c.votes.count)
+                    Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(news_comment_item.id, 'Comment'))
+                    #VotesProcessor::VotingListJob.new(news_comment_item.id, 'Comment').perform
+                  end
+                else
+                  # TODO: Log event: comment's votes not available or no key or comment id doesn't match
+                end
+              end
+            end
+          rescue ThreadError
+          end
+        end
+      end
+
+      workers.map(&:join)
 
     end
 
     desc "Update all closed and incomplete comments with available"
     task  :complete =>  :environment  do
 
-      COMMENTS_SIZE = 500000
-
-      news_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed.order(:timestamp_creation => :desc).limit(COMMENTS_SIZE)).pluck(:news_id).uniq
+      # TODO Issue to query to count these comments and focus only on the ones that we can get some useful data, plus some extra to catch up with the past
+      news_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed.order(:timestamp_creation => :desc).limit(COMMENTS_BATCH_SIZE)).pluck(:news_id).uniq
       news_list = News.where(:id => news_id_list)
 
       news_list_queue = Queue.new
@@ -37,13 +67,13 @@ namespace :maintenance do
         news_list_queue.push(n)
       end
 
-      workers = (0..THREAD_WORKERS).map do
+      workers = (0..THREAD_COMMENTS_WORKERS).map do
         Thread.new do
           begin
             while n = news_list_queue.pop(true)
               news_item = Wagg.news(n.url_internal)
               if news_item.comments_available? && news_item.commenting_closed?
-                comments_news_list = Comment.incomplete.closed.joins(:news_comments).where(:news_comments => {:news_id => n.id}).order(:timestamp_creation => :desc)
+                comments_news_list = Comment.incomplete.closed.joins(:news_comments).merge(NewsComment.where(:news_id => n.id)).order(:timestamp_creation => :desc)
                 comments_news_list.each do |c|
                   if c.id == news_item.comment(c.news_index).id
                     Delayed::Job.enqueue(CommentsProcessor::CommentJob.new(news_item.comment(c.news_index)))
@@ -67,39 +97,58 @@ namespace :maintenance do
     desc "Check consistency of scrapped comments' votes tag them 'complete' and/or 'faulty'"
     task  :check_consistency  => :environment do
 
-      comments_list = Comment.incomplete.closed(-1.day).order(:timestamp_creation => :desc)
-      news_comments_list = News.joins(:comments).merge(comments_list).distinct
+      DELAY = -1.day
 
-      news_comments_list.each do |n|
-        news_item = Wagg.news(n.url_internal)
+      news_id_list = NewsComment.joins(:comment).merge(Comment.incomplete.closed(DELAY).order(:timestamp_creation => :desc).limit(COMMENTS_BATCH_SIZE)).pluck(:news_id).uniq
+      news_list = News.where(:id => news_id_list)
 
-        news_item.comments.each do |_, news_comment|
-          c = Comment.find(news_comment.id)
+      news_list_queue = Queue.new
+      news_list.each do |n|
+        news_list_queue.push(n)
+      end
 
-          if (c.complete.nil? || c.complete == FALSE) && c.closed?
-            c.complete = FALSE
+      workers = (0..THREAD_COMMENTS_WORKERS).map do
+        Thread.new do
+          begin
+            while n = news_list_queue.pop(true)
+              news_item = Wagg.news(n.url_internal)
 
-            if news_comment.voting_closed?
-              c.faulty = FALSE
+              news_item.comments.each do |_, news_comment|
+                c = Comment.find(news_comment.id)
 
-              if (news_comment.votes_count.nil? && !Author.find_by(:name => news_comment.author).disabled? && news_comment.votes_available? && news_comment.votes.size != c.votes.count) ||
-                  (!news_comment.votes_count.nil? && news_comment.votes_count != c.votes.count)
-                c.faulty = TRUE
+                if (c.complete.nil? || c.complete == FALSE) && c.closed?
+                  c.complete = FALSE
+
+                  if news_comment.voting_closed?
+                    c.faulty = FALSE
+
+                    if (news_comment.votes_count.nil? && !Author.find_by(:name => news_comment.author).disabled? && news_comment.votes_available? && news_comment.votes.size != c.votes.count) ||
+                        (!news_comment.votes_count.nil? && news_comment.votes_count != c.votes.count)
+                      c.faulty = TRUE
+                    end
+
+                    c.complete = TRUE
+                  end
+
+                  c.save
+                end
               end
-
-              c.complete = TRUE
             end
-
-            c.save
+          rescue ThreadError
           end
         end
       end
+
+      workers.map(&:join)
 
     end
 
   end
 
   namespace :news do
+
+    THREAD_NEWS_WORKERS = 3
+
     desc  "Updates votes of news prioritizing new negative votes and queued news"
     task  :update_votes =>  :environment  do
 
@@ -195,7 +244,9 @@ namespace :maintenance do
     desc "Check consistency of scrapped news' votes and comments of each news and tag them 'complete' and/or 'faulty'"
     task  :check_consistency  => :environment do
 
-      news_list = News.incomplete.closed(-1.day).order(:timestamp_creation => :desc)
+      DELAY = -1.day
+
+      news_list = News.incomplete.closed(DELAY).order(:timestamp_creation => :desc)
 
       news_list.each do |n|
         n.complete = FALSE
