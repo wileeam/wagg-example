@@ -24,31 +24,36 @@
 # At 10am
 # run update closed news (go for news itself and comments, do NOT consider votes)
 
-every '0 0,3,4,15,18,20 * * *' do
-  rake "maintenance:news:scrap_latest",       :environment  =>  'development'
+# Scrap new news since last scrap (see maintenance:comments:scrap_latest for 14:00)
+every '0 0,3,4,18,20 * * *' do
+  rake "maintenance:news:scrap_latest",           :environment  =>  'development'
 end
 
 every '30 22,2,3 * * *' do
-  rake "maintenance:news:update_votes",       :environment  =>  'development'
+  rake "maintenance:news:update_votes",           :environment  =>  'development'
 end
 
 every :day, :at => '5am' do
-  rake "maintenance:news:complete",           :environment  =>  'development'
+  rake "maintenance:news:complete",               :environment  =>  'development'
 end
 
 every :day, :at => '8am' do
-  rake "maintenance:news:check_consistency",  :environment  =>  'development'
+  rake "maintenance:news:check_consistency",      :environment  =>  'development'
 end
 
+# Scrap new comments of open news since last scrap (note the script does a news scrap as well)
+every :day, :at => '2pm' do
+  rake "maintenance:comments:scrap_latest",       :environment  =>  'development'
+end
 
 every :day, :at => '7am' do
-  rake "maintenance:comments:update_votes", :environment  =>  'development'
+  rake "maintenance:comments:update_votes",       :environment  =>  'development'
 end
 
 every :day, :at => '10am' do
-  rake "maintenance:comments:complete",       :environment  =>  'development'
+  rake "maintenance:comments:complete",           :environment  =>  'development'
 end
 
-every :day, :at => '1pm' do
+every :day, :at => '12pm' do
   rake "maintenance:comments:check_consistency",  :environment  =>  'development'
 end

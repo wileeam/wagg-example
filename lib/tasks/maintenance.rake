@@ -55,7 +55,56 @@ namespace :maintenance do
 
     end
 
-    desc "Update all closed and incomplete comments with available"
+    desc "Scraps the site for recent comments' submissions"
+    task  :scrap_latest =>  :environment  do
+
+      # We add this time to account for news that haven't been checked
+      delta_time = 2.days
+
+      StatusTimestamp = Struct.new(:status, :ref_timestamp)
+
+      status_ref_timestamps_queue = Queue.new
+      status_ref_timestamps_queue.push(StatusTimestamp.new('published', (News.published.open.order(:timestamp_publication => :asc).first.timestamp_publication - delta_time).to_i))
+      status_ref_timestamps_queue.push(StatusTimestamp.new('queued', (News.queued.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i))
+      status_ref_timestamps_queue.push(StatusTimestamp.new('discarded', (News.discarded.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i))
+
+      # One thread per type of possible status ('published', 'queued' and 'discarded')
+      workers = (0..status_ref_timestamps_queue.size).map do
+        Thread.new do
+          begin
+            status_ref_timestamp = status_ref_timestamps_queue.pop(true)
+            status = status_ref_timestamp.status
+            ref_timestamp = status_ref_timestamp.ref_timestamp
+
+            index_counter = 1
+
+            page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
+
+            while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
+              # Parse and process each news in news_list
+              page.news_list.each do |news_url, news|
+                if !News.exists?(news.id) || (News.exists?(news.id) && News.find(news.id).comments.count != news.comments_count)
+                  if Delayed::Job.where(:queue => 'news').count < 1000
+                    Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
+                  else
+                    NewsProcessor::NewsJob.new(news_url).perform
+                  end
+                end
+              end
+
+              index_counter += 1
+              page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
+            end
+          rescue ThreadError
+          end
+        end
+      end
+
+      workers.map(&:join)
+
+    end
+
+    desc "Update all closed and incomplete comments with latest available information"
     task  :complete =>  :environment  do
 
       # TODO Issue to query to count these comments and focus only on the ones that we can get some useful data, plus some extra to catch up with the past
@@ -155,42 +204,58 @@ namespace :maintenance do
       # We add this time to account for shifts of news' statuses in the site
       delta_time = 6.hours
 
-      status_ref_timestamps = Hash.new
-      status_ref_timestamps['queued']    = (News.queued.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i
-      status_ref_timestamps['published'] = (News.published.open.order(:timestamp_creation => :asc).first.timestamp_publication - delta_time).to_i
-      status_ref_timestamps['discarded'] = (News.discarded.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i
+      StatusTimestamp = Struct.new(:status, :ref_timestamp)
 
-      status_ref_timestamps.each do |status, ref_timestamp|
-        voting_lists = Array.new
-        index_counter = 1
+      status_ref_timestamps_queue = Queue.new
+      status_ref_timestamps_queue.push(StatusTimestamp.new('published', (News.published.open.order(:timestamp_publication => :asc).first.timestamp_publication - delta_time).to_i))
+      status_ref_timestamps_queue.push(StatusTimestamp.new('queued', (News.queued.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i))
+      status_ref_timestamps_queue.push(StatusTimestamp.new('discarded', (News.discarded.open.order(:timestamp_creation => :asc).first.timestamp_creation - delta_time).to_i))
 
-        page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
-        while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
-          # Parse and process each news in news_list to be stored in database
-          page.news_list.each do |news_url, news_item|
-            if !News.exists?(news_item.id)
-              Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
-            else
-              n = News.find(news_item.id)
-              if news_item.votes_available?
-                if news_item.votes_count['negative'] != n.votes_negative.count
-                  Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(news_item.id, 'News'))
-                elsif news_item.votes_count['positive'] != n.votes_positive.count
-                  voting_lists.push(news_item.id)
+      # One thread per type of possible status ('published', 'queued' and 'discarded')
+      workers = (0..status_ref_timestamps_queue.size).map do
+        Thread.new do
+          begin
+            status_ref_timestamp = status_ref_timestamps_queue.pop(true)
+            status = status_ref_timestamp.status
+            ref_timestamp = status_ref_timestamp.ref_timestamp
+
+            voting_lists = Array.new
+            index_counter = 1
+
+            page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
+            while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
+              # Parse and process each news in news_list to be stored in database
+              page.news_list.each do |news_url, news_item|
+                if !News.exists?(news_item.id)
+                  Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
+                else
+                  n = News.find(news_item.id)
+                  if news_item.votes_available?
+                    if news_item.votes_count['negative'] != n.votes_negative.count
+                      Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(news_item.id, 'News'))
+                    elsif news_item.votes_count['positive'] != n.votes_positive.count
+                      voting_lists.push(news_item.id)
+                    end
+                  end
                 end
               end
+
+              index_counter += 1
+              page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
             end
+
+            # Enqueue now voting lists with only missing positive votes (negative ones are enqueued as found)
+            voting_lists.each do |vl|
+              Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(vl, 'News'))
+            end
+
+          rescue ThreadError
           end
-
-          index_counter += 1
-          page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
-        end
-
-        # Enqueue now voting lists with only missing positive votes (negative ones are enqueued as found)
-        voting_lists.each do |vl|
-          Delayed::Job.enqueue(VotesProcessor::VotingListJob.new(vl, 'News'))
         end
       end
+
+      workers.map(&:join)
+
     end
 
     desc "Scraps the site for recent submissions"
@@ -199,33 +264,47 @@ namespace :maintenance do
       # We add this time to account for shifts of news' statuses in the site
       delta_time = 6.hours
 
-      status_ref_timestamps = Hash.new
-      status_ref_timestamps['published'] = (News.published.order(:timestamp_publication => :asc).last.timestamp_publication - delta_time).to_i
-      status_ref_timestamps['queued']    = (News.queued.order(:timestamp_creation => :asc).last.timestamp_creation - delta_time).to_i
-      status_ref_timestamps['discarded'] = (News.discarded.order(:timestamp_creation => :asc).last.timestamp_creation - delta_time).to_i
+      StatusTimestamp = Struct.new(:status, :ref_timestamp)
 
-      status_ref_timestamps.each do |status, ref_timestamp|
-        index_counter = 1
+      status_ref_timestamps_queue = Queue.new
+      status_ref_timestamps_queue.push(StatusTimestamp.new('published', (News.published.order(:timestamp_publication => :asc).last.timestamp_publication - delta_time).to_i))
+      status_ref_timestamps_queue.push(StatusTimestamp.new('queued', (News.queued.order(:timestamp_creation => :asc).last.timestamp_creation - delta_time).to_i))
+      status_ref_timestamps_queue.push(StatusTimestamp.new('discarded', (News.discarded.order(:timestamp_creation => :asc).last.timestamp_creation - delta_time).to_i))
 
-        page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
+      # One thread per type of possible status ('published', 'queued' and 'discarded')
+      workers = (0..status_ref_timestamps_queue.size).map do
+        Thread.new do
+          begin
+            status_ref_timestamp = status_ref_timestamps_queue.pop(true)
+            status = status_ref_timestamp.status
+            ref_timestamp = status_ref_timestamp.ref_timestamp
 
-        while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
-          # Parse and process each news in news_list to be stored in database
-          page.news_list.each do |news_url, news|
-            if !News.exists?(news.id)
-              if Delayed::Job.where(:queue => 'news').count < 1000
-                Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
-              else
-                NewsProcessor::NewsJob.new(news_url).perform
+            index_counter = 1
+
+            page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
+
+            while page.max_timestamp >= ref_timestamp || page.max_timestamp >= ref_timestamp
+              # Parse and process each news in news_list to be stored in database
+              page.news_list.each do |news_url, news|
+                unless News.exists?(news.id)
+                  if Delayed::Job.where(:queue => 'news').count < 1000
+                    Delayed::Job.enqueue(NewsProcessor::NewsJob.new(news_url))
+                  else
+                    NewsProcessor::NewsJob.new(news_url).perform
+                  end
+                end
               end
+
+              index_counter += 1
+              page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
             end
+
+          rescue ThreadError
           end
-
-          index_counter += 1
-          page = Wagg.page(status, :begin_interval => index_counter, :end_interval => index_counter)[index_counter]
         end
-
       end
+
+      workers.map(&:join)
 
     end
 
