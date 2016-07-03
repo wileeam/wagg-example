@@ -3,7 +3,7 @@ class CreateComments < ActiveRecord::Migration
     create_table :comments do |t|
       t.datetime    :timestamp_creation
       t.datetime    :timestamp_edition
-      t.text        :body
+      t.text        :body,                :limit => 16.megabytes - 1
       t.integer     :vote_count
       t.integer     :karma
 

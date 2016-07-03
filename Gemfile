@@ -6,7 +6,8 @@ gem 'rails', '>= 4.2.5'
 # Use MySQL as the database for Active Record
 # Gem mysql2 does not support jRuby, use activerecord-jdbcmysql-adapter instead
 group :production, :development do
-  gem 'mysql2', :platform => :ruby
+  gem 'mysql2',                         :platform => :ruby
+  gem 'jdbc-mysql', '= 5.1.35',         :platform => :jruby
   gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
 end
 # Use SCSS for stylesheets
