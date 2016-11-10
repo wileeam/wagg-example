@@ -51,7 +51,6 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # gem 'capistrano-rails', group: :development
 
 # Temporarily switching to mechanize gem for compability with wagg until mechanize gem is bumped
-gem 'mechanize', github: 'sparklemotion/mechanize', ref: 'master'
 gem 'wagg', github: 'wileeam/wagg', ref: 'master'
 
 gem 'composite_primary_keys', '~> 8.1.1'

@@ -2,6 +2,7 @@ Rails.application.routes.draw do
 
   mount RailsAdmin::Engine => '/admin',     as: 'rails_admin'
 
+  # Delayed Jobs
   mount Delayed::Web::Engine,               at: '/jobs'
 
   # Show options to retrieve data
