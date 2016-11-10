@@ -23,7 +23,7 @@ class News < ActiveRecord::Base
   end
 
   def comment(index)
-    self.comments.where(:news_comments => {:news_index => index})
+    self.comments.where(:news_comments => {:news_index => index}).first
   end
 
   def votes_positive

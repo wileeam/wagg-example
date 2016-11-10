@@ -25,6 +25,7 @@ class Author < ActiveRecord::Base
           author_item = Wagg.author(name)
         rescue Mechanize::ResponseCodeError => response_exception
           error = "User '%{name}' has changed its name => %{e}" %{name: name, e:response_exception.to_s}
+          error = "User '%{name}' has changed its name => %{e}" % {name: name, e:response_exception.to_s}
           raise ActiveRecord::RecordNotFound, error
         end
 
