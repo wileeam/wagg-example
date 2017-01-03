@@ -1,8 +1,7 @@
 source 'https://rubygems.org'
 
-
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '>= 4.2.5'
+gem 'rails', '>= 5.0.0'
 # Use MySQL as the database for Active Record
 # Gem mysql2 does not support jRuby, use activerecord-jdbcmysql-adapter instead
 group :production, :development do
@@ -21,7 +20,7 @@ gem 'haml'
 # See https://github.com/rails/execjs#readme for more supported runtimes
 # gem 'therubyracer', platforms: :ruby
 # Use DelayedJob for background tasks
-gem 'delayed_job_active_record', '>= 4.1.0'
+gem 'delayed_job_active_record'#, '>= 4.1.0'
 gem 'delayed-web'
 # Use Daemons to daemonize the DelayedJob workers
 gem 'daemons'
@@ -39,7 +38,7 @@ gem 'turbolinks'
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
 gem 'jbuilder', '~> 2.0'
 # bundle exec rake doc:rails generates the API under doc/api.
-gem 'sdoc', '~> 0.4.0', group: :doc
+#gem 'sdoc', '~> 0.4.0', group: :doc
 
 # Use ActiveModel has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
@@ -53,7 +52,8 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # Temporarily switching to mechanize gem for compability with wagg until mechanize gem is bumped
 gem 'wagg', github: 'wileeam/wagg', ref: 'master'
 
-gem 'composite_primary_keys', '~> 8.1.1'
+#gem 'composite_primary_keys', '~> 8.1.1'
+gem 'composite_primary_keys', '>= 9.0.0'
 gem 'active_record_union'
 gem 'activerecord-import'
 
